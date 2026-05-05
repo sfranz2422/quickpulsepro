@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Teacher Dashboard</h1>
+
+<p>
+    Logged in as: {{ user.username }}
+</p>
+
+<p>
+    Your student room link:
+    <a href="{% url 'student_room' user.id %}">
+        /student/{{ user.id }}/
+    </a>
+</p>
+
+<p>
+    <a href="{% url 'create_question' %}">Create New Question</a>
+</p>
+
+<h2>Your Questions</h2>
+
+<ul>
+    {% for q in questions %}
+        <li>
+            {{ q.question_text }}
+
+            {% if q.is_active %}
+                <strong>(ACTIVE)</strong>
+            {% endif %}
+
+            |
+            <a href="{% url 'question_results' q.id %}">View Results</a>
+        </li>
+    {% empty %}
+        <li>No questions created yet.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

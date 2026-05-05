@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="mb-1">Results</h1>
+        <p class="text-muted mb-0">
+            Total responses: {{ total_responses }}
+        </p>
+    </div>
+
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h3 class="card-title mb-0">
+            {{ question.question_text }}
+        </h3>
+
+        {% if question.is_active %}
+            <span class="badge bg-success mt-3">Active Question</span>
+        {% else %}
+            <span class="badge bg-secondary mt-3">Past Question</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        {% if total_responses == 0 %}
+            <p class="text-muted mb-0">No responses yet.</p>
+        {% else %}
+
+            {% for row in results %}
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <strong>
+                            {{ row.letter }}. {{ row.text }}
+                        </strong>
+
+                        <span>
+                            {{ row.count }} response{{ row.count|pluralize }}
+                            — {{ row.percent }}%
+                        </span>
+                    </div>
+
+                    <div class="progress" style="height: 28px;">
+                        <div
+                            class="progress-bar"
+                            role="progressbar"
+                            style="width: {{ row.percent }}%;"
+                            aria-valuenow="{{ row.percent }}"
+                            aria-valuemin="0"
+                            aria-valuemax="100">
+                            {{ row.percent }}%
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+        {% endif %}
+
+    </div>
+</div>
+<script>
+    let refreshInterval = setInterval(function () {
+        window.location.reload();
+    }, 2000);
+
+    // stop refreshing if tab not visible
+    document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+            clearInterval(refreshInterval);
+        }
+    });
+</script>
+{% endblock %}
