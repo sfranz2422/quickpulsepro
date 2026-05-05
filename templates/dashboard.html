@@ -10,16 +10,16 @@
 <p>
     Your student room link:
     <a href="{% url 'student_room' user.id %}">
-        /student/{{ user.id }}/
+        https://quickpulsepro.onrender.com/student/{{ user.id }}/
     </a>
 </p>
 
-<p>
-    <a href="{% url 'create_question' %}">Create New Question</a>
-</p>
+
 
 <h2>Your Questions</h2>
-
+<p>
+    <a class="btn btn-primary" href="{% url 'create_question' %}">Create New Question</a>
+</p>
 <ul>
     {% for q in questions %}
         <li>
@@ -30,8 +30,9 @@
             {% endif %}
 
             |
-            <a href="{% url 'question_results' q.id %}">View Results</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'question_results' q.id %}">View Results</a>
         </li>
+        <br>
     {% empty %}
         <li>No questions created yet.</li>
     {% endfor %}
