@@ -21,7 +21,7 @@ from django.views.generic import RedirectView
 from polls.forms import TeacherLoginForm
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", RedirectView.as_view(pattern_name="dashboard", permanent=False)),
+    path("", RedirectView.as_view(pattern_name="student_landing", permanent=False)),
     path("login/", auth_views.LoginView.as_view(template_name="login.html", authentication_form = TeacherLoginForm), name="login"),
     path("logout/", auth_views.LogoutView.as_view(template_name='logout.html'), name="logout"),
 
