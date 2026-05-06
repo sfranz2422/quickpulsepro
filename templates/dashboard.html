@@ -1,40 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Teacher Dashboard</h1>
 
-<p>
-    Logged in as: {{ user.username }}
-</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="mb-1">Teacher Dashboard</h1>
+        <p class="text-muted mb-0">
+            Logged in as {{ user.username }}
+        </p>
+    </div>
 
-<p>
-    Your student room link:
-    <a href="{% url 'student_room' user.id %}">
-        https://quickpulsepro.onrender.com/student/{{ user.id }}/
+    <a class="btn btn-success" href="{% url 'create_question' %}">
+        Create New Question
     </a>
-</p>
+</div>
 
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h4 class="card-title">Student Access</h4>
 
+        <p class="mb-2">
+            Give students your Teacher ID or send them directly to your student room.
+        </p>
 
-<h2>Your Questions</h2>
-<p>
-    <a class="btn btn-primary" href="{% url 'create_question' %}">Create New Question</a>
-</p>
-<ul>
-    {% for q in questions %}
-        <li>
-            {{ q.question_text }}
+        <div class="mb-3">
+            <span class="badge bg-dark fs-6">
+                Teacher ID: {{ user.id }}
+            </span>
+        </div>
 
-            {% if q.is_active %}
-                <strong>(ACTIVE)</strong>
-            {% endif %}
+        <div>
+            <strong>Student Room:</strong>
+            <br>
+            <a href="{% url 'student_room' user.id %}">
+                https://quickpulsepro.onrender.com/student/{{ user.id }}/
+            </a>
+        </div>
+    </div>
+</div>
 
-            |
-            <a class="btn btn-primary btn-sm" href="{% url 'question_results' q.id %}">View Results</a>
-        </li>
-        <br>
-    {% empty %}
-        <li>No questions created yet.</li>
-    {% endfor %}
-</ul>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Your Questions</h4>
+
+        {% if questions %}
+            <div class="list-group">
+                {% for q in questions %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                        <div>
+                            <strong>{{ q.question_text }}</strong>
+
+                            <div class="text-muted small">
+                                Created: {{ q.created_at|date:"M d, Y g:i A" }}
+                            </div>
+
+                            {% if q.is_active %}
+                                <span class="badge bg-success mt-2">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary mt-2">Past</span>
+                            {% endif %}
+                        </div>
+
+                        <a class="btn btn-outline-primary btn-sm"
+                           href="{% url 'question_results' q.id %}">
+                            View Results
+                        </a>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No questions created yet.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
 {% endblock %}

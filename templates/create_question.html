@@ -5,9 +5,35 @@
 
 <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
 
-    <button type="submit">Create</button>
+    <div class="mb-3">
+        {{ form.question_text.label_tag }}
+        {{ form.question_text }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.option_a }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.option_b }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.option_c }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.option_d }}
+    </div>
+
+    <button class="btn btn-success">
+        Create Question
+    </button>
 </form>
 
 <a href="/dashboard/">Back to Dashboard</a>

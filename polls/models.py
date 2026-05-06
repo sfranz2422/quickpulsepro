@@ -20,6 +20,7 @@ class PollQuestion(models.Model):
         return self.question_text
 
 
+
 class PollResponse(models.Model):
     question = models.ForeignKey(
         PollQuestion,
