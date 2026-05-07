@@ -21,6 +21,16 @@ def dashboard(request):
         "questions": questions
     })
 
+def delete_poll_question(request, id):
+    question = get_object_or_404(
+        PollQuestion,
+        id=id,
+        teacher=request.user
+    )
+    question.delete()
+    messages.success(request, "Question deleted.")
+    return redirect("dashboard")
+
 
 @login_required
 def create_question(request):

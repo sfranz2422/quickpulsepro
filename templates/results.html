@@ -67,6 +67,9 @@
 
     </div>
 </div>
+    <br>
+    <a href="{% url 'delete_poll_question' question.id %}" class="btn btn-danger mb-3">Delete Question</a>
+
 <script>
     let refreshInterval = setInterval(function () {
         window.location.reload();

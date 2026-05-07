@@ -12,5 +12,6 @@ urlpatterns = [
 
     path("student/", views.student_landing, name="student_landing"),
 path("register/", views.register_teacher, name="register_teacher"),
+path("delete_poll_question/<int:id>/teacher", views.delete_poll_question, name="delete_poll_question"),
 
 ]
