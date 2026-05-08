@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Create Question</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.description }}
+    </div>
+
+
+    <button class="btn btn-success">
+        Create Quiz
+    </button>
+</form>
+
+<a href="/dashboard/">Back to Dashboard</a>
+{% endblock %}

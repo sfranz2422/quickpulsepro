@@ -19,6 +19,35 @@ class PollQuestion(models.Model):
     def __str__(self):
         return self.question_text
 
+class Quiz(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="quizzes"
+    )
+
+
+    def __str__(self):
+        return self.title
+
+class QuizQuestion(models.Model):
+
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    question_text = models.CharField(max_length=255)
+    option_a = models.CharField(max_length=100)
+    option_b = models.CharField(max_length=100)
+    option_c = models.CharField(max_length=100, blank=True)
+    option_d = models.CharField(max_length=100, blank=True)
+    correctAnswer = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.question_text
 
 
 class PollResponse(models.Model):

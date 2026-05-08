@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="mb-1">{{ quiz.title }}</h1>
+                <p class="text-muted mb-0">
+                    Question {{ current_number }} of {{ total_questions }}
+                </p>
+            </div>
+
+            <div>
+                <span class="badge bg-success">Correct: {{ correct }}</span>
+                <span class="badge bg-danger">Wrong: {{ wrong }}</span>
+            </div>
+        </div>
+
+        <div class="progress mb-4">
+            <div class="progress-bar"
+                 role="progressbar"
+                 style="width: {{ progress_percent }}%;">
+                {{ progress_percent }}%
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="mb-4">{{ question.question_text }}</h3>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="list-group mb-3">
+
+                        <label class="list-group-item">
+                            <input class="form-check-input me-2"
+                                   type="radio"
+                                   name="selected_option"
+                                   value="A"
+                                   required>
+                            A. {{ question.option_a }}
+                        </label>
+
+                        <label class="list-group-item">
+                            <input class="form-check-input me-2"
+                                   type="radio"
+                                   name="selected_option"
+                                   value="B">
+                            B. {{ question.option_b }}
+                        </label>
+
+                        {% if question.option_c %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2"
+                                       type="radio"
+                                       name="selected_option"
+                                       value="C">
+                                C. {{ question.option_c }}
+                            </label>
+                        {% endif %}
+
+                        {% if question.option_d %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2"
+                                       type="radio"
+                                       name="selected_option"
+                                       value="D">
+                                D. {{ question.option_d }}
+                            </label>
+                        {% endif %}
+
+                    </div>
+
+                    <button class="btn btn-primary w-100">
+                        Submit Answer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

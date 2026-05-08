@@ -4,12 +4,23 @@ from . import views
 
 urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
+
+    path("create_quiz/<int:teacher_id>", views.create_quiz, name="create_quiz"),
+    path("upload_csv/<int:QuizID>/", views.upload_csv, name="upload_csv"),
+
+
+    path("display_quiz/<int:QuizID>/", views.display_quiz, name="display_quiz"),
+
     path("questions/create/", views.create_question, name="create_question"),
     path("questions/<int:question_id>/results/", views.question_results, name="question_results"),
 
     path("student/<int:teacher_id>/", views.student_room, name="student_room"),
     path("student/<int:teacher_id>/submit/", views.submit_response, name="submit_response"),
-
+path(
+    "start_quiz/<int:QuizID>",
+    views.start_quiz,
+    name="start_quiz"
+),
     path("student/", views.student_landing, name="student_landing"),
 path("register/", views.register_teacher, name="register_teacher"),
 path("delete_poll_question/<int:id>/teacher", views.delete_poll_question, name="delete_poll_question"),

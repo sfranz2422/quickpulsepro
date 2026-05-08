@@ -1,7 +1,7 @@
 from cProfile import label
 
 from django import forms
-from .models import PollQuestion, PollResponse
+from .models import PollQuestion, PollResponse,QuizQuestion,Quiz
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
@@ -114,3 +114,29 @@ class TeacherLoginForm(AuthenticationForm):
             "placeholder": "Password"
         })
     )
+
+class CreateQuizForm(forms.ModelForm):
+    class Meta:
+        model = Quiz
+        fields = ["title", "description"]
+
+        widgets = {
+            "title": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Quiz Title",
+                "required": "true",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "form-control",
+                "placeholder": "Quiz Description",
+                "rows": "3",
+                "required": "true",
+            }),
+        }
+
+class CSVUploadForm(forms.Form):
+
+    csv_file = forms.FileField(label="CSV File", widget=forms.FileInput(attrs={
+            "class": "form-control",
+    }))
+

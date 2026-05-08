@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+
+                <h1>Quiz Complete</h1>
+
+                <p class="text-muted">{{ quiz.title }}</p>
+
+                <h3 class="mt-4">
+                    Score: {{ correct }} / {{ total }}
+                </h3>
+
+                <p>
+                    Correct: {{ correct }}<br>
+                    Wrong: {{ wrong }}
+                </p>
+
+
+<a href="{% url 'start_quiz' quiz.id %}"
+   class="btn btn-primary">
+    Retake Quiz
+</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
