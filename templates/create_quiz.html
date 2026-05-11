@@ -16,11 +16,20 @@
         {{ form.description }}
     </div>
 
+<div class="mb-4">
 
-    <button class="btn btn-success">
+    <a class="btn btn-outline-secondary"
+       href="{% url 'download_quiz_csv_template' %}">
+
+        Download CSV Template
+
+    </a>
+
+</div>
+    <button class="btn btn-dark">
         Create Quiz
     </button>
 </form>
-
-<a href="/dashboard/">Back to Dashboard</a>
+<br>
+<a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
 {% endblock %}

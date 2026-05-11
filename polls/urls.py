@@ -9,7 +9,7 @@ urlpatterns = [
     path("upload_csv/<int:QuizID>/", views.upload_csv, name="upload_csv"),
 
 
-    path("display_quiz/<int:QuizID>/", views.display_quiz, name="display_quiz"),
+    path("display_quiz/<uuid:public_id>/", views.display_quiz, name="display_quiz"),
 
     path("questions/create/", views.create_question, name="create_question"),
     path("questions/<int:question_id>/results/", views.question_results, name="question_results"),
@@ -17,12 +17,18 @@ urlpatterns = [
     path("student/<int:teacher_id>/", views.student_room, name="student_room"),
     path("student/<int:teacher_id>/submit/", views.submit_response, name="submit_response"),
 path(
-    "start_quiz/<int:QuizID>",
+    "start_quiz/<uuid:public_id>",
     views.start_quiz,
     name="start_quiz"
 ),
     path("student/", views.student_landing, name="student_landing"),
 path("register/", views.register_teacher, name="register_teacher"),
 path("delete_poll_question/<int:id>/teacher", views.delete_poll_question, name="delete_poll_question"),
+path("quiz_results/<int:quiz_id>/", views.quiz_results, name="quiz_results"),
+path(
+    "download_quiz_csv_template/",
+    views.download_quiz_csv_template,
+    name="download_quiz_csv_template"
+),
 
 ]

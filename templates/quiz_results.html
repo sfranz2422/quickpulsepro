@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">{{ quiz.title }}</h1>
+
+            <p class="text-muted mb-0">
+                Quiz Results Dashboard
+            </p>
+        </div>
+
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            Back to Dashboard
+        </a>
+    </div>
+
+    {% if results %}
+
+        {% for result in results %}
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        Question {{ forloop.counter }}
+                    </h5>
+
+                    <p class="fw-semibold">
+                        {{ result.question.question_text }}
+                    </p>
+
+                    <div class="row text-center mt-4">
+
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h3>{{ result.total }}</h3>
+                                <div class="text-muted">
+                                    Total Responses
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-success-subtle">
+                                <h3>{{ result.correct }}</h3>
+                                <div>
+                                    Correct
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-danger-subtle">
+                                <h3>{{ result.incorrect }}</h3>
+                                <div>
+                                    Incorrect
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-primary-subtle">
+                                <h3>{{ result.percent_correct }}%</h3>
+                                <div>
+                                    Percent Correct
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {% if result.percent_correct < 70 %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            Students may be struggling with this concept.
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="alert alert-secondary">
+            No quiz response data yet.
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

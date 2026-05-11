@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -32,6 +34,11 @@ class Quiz(models.Model):
         related_name="quizzes"
     )
 
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False
+    )
 
     def __str__(self):
         return self.title
@@ -48,6 +55,28 @@ class QuizQuestion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return self.question_text
+
+class QuizResponse(models.Model):
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="responses"
+    )
+
+    question = models.ForeignKey(
+        QuizQuestion,
+        on_delete=models.CASCADE,
+        related_name="responses"
+    )
+
+    selected_option = models.CharField(max_length=1)
+
+    is_correct = models.BooleanField()
+
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.quiz.title} - {self.question.question_text}"
 
 
 class PollResponse(models.Model):

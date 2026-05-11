@@ -19,7 +19,9 @@ from .models import QuizQuestion
 from .models import Quiz
 from polls.forms import CSVUploadForm
 from polls.forms import CreateQuizForm
-
+from .models import QuizResponse
+import csv
+from django.http import HttpResponse
 
 
 @login_required
@@ -266,8 +268,8 @@ def upload_csv(request, QuizID):
     return render(request, 'upload.html', {'form': form})
 
 
-def display_quiz(request, QuizID):
-    quiz = get_object_or_404(Quiz, id=QuizID)
+def display_quiz(request, public_id):
+    quiz = get_object_or_404(Quiz, public_id=public_id)
 
     questions = list(quiz.questions.all().order_by("id"))
 
@@ -302,14 +304,22 @@ def display_quiz(request, QuizID):
 
         if selected_option == correct_answer:
             request.session[session_correct_key] += 1
+            is_correct = True
             messages.success(request, "Correct!")
         else:
             request.session[session_wrong_key] += 1
+            is_correct = False
             messages.error(request, "Incorrect.")
 
+        QuizResponse.objects.create(
+            quiz=quiz,
+            question=current_question,
+            selected_option=selected_option,
+            is_correct=is_correct
+        )
         request.session[session_quiz_key] += 1
 
-        return redirect("display_quiz", QuizID=quiz.id)
+        return redirect("display_quiz", public_id=quiz.public_id)
 
     current_number = current_index + 1
     total_questions = len(questions)
@@ -325,12 +335,81 @@ def display_quiz(request, QuizID):
         "wrong": request.session[session_wrong_key],
     })
 
-def start_quiz(request, QuizID):
+def start_quiz(request, public_id):
 
-    quiz = get_object_or_404(Quiz, id=QuizID)
+    quiz = get_object_or_404(Quiz, public_id=public_id)
 
     request.session[f"quiz_{quiz.id}_current_index"] = 0
     request.session[f"quiz_{quiz.id}_correct"] = 0
     request.session[f"quiz_{quiz.id}_wrong"] = 0
 
-    return redirect("display_quiz", QuizID=quiz.id)
+    return redirect("display_quiz", public_id=quiz.public_id)
+
+
+@login_required
+def quiz_results(request, quiz_id):
+    quiz = get_object_or_404(
+        Quiz,
+        id=quiz_id,
+        teacher=request.user
+    )
+
+    questions = quiz.questions.all().order_by("id")
+
+    results = []
+
+    for question in questions:
+        total = question.responses.count()
+        correct = question.responses.filter(is_correct=True).count()
+        incorrect = question.responses.filter(is_correct=False).count()
+
+        if total > 0:
+            percent_correct = round((correct / total) * 100)
+        else:
+            percent_correct = 0
+
+        results.append({
+            "question": question,
+            "total": total,
+            "correct": correct,
+            "incorrect": incorrect,
+            "percent_correct": percent_correct,
+        })
+
+    return render(request, "quiz_results.html", {
+        "quiz": quiz,
+        "results": results,
+    })
+
+@login_required
+def download_quiz_csv_template(request):
+
+    response = HttpResponse(content_type='text/csv')
+
+    response['Content-Disposition'] = (
+        'attachment; filename="quiz_template.csv"'
+    )
+
+    writer = csv.writer(response)
+
+    # Header row
+    writer.writerow([
+        'question_text',
+        'option_a',
+        'option_b',
+        'option_c',
+        'option_d',
+        'correctAnswer'
+    ])
+
+    # Sample row
+    writer.writerow([
+        'What keyword defines a function in Python?',
+        'func',
+        'def',
+        'function',
+        'define',
+        'B'
+    ])
+
+    return response
