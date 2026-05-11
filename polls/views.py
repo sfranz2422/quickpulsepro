@@ -426,7 +426,18 @@ def display_quiz(request, public_id):
         else:
             request.session[session_wrong_key] += 1
             is_correct = False
-            messages.error(request, "Incorrect.")
+            correct_option = correct_answer
+            correct_text = {
+                "A": current_question.option_a,
+                "B": current_question.option_b,
+                "C": current_question.option_c,
+                "D": current_question.option_d,
+            }.get(correct_option, "Unknown")
+            messages.error(
+                request,
+                f"Incorrect. The correct answer was: {correct_text}"
+            )
+            # messages.error(request, "Incorrect.")
 
         QuizResponse.objects.create(
             quiz=quiz,
