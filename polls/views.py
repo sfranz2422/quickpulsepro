@@ -210,64 +210,181 @@ def create_quiz(request,teacher_id):
         form = CreateQuizForm()
     return render(request, "create_quiz.html", {"form": form})
 
+#
+# @login_required
+# def upload_csv(request, QuizID):
+#     quiz = get_object_or_404(Quiz, id=QuizID)
+#     EXPECTED_COLUMNS = 6  # Example: [index 0] to [index 6]
+#
+#     if request.method == "POST":
+#         form = CSVUploadForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             file = request.FILES['csv_file']
+#
+#             # 1. Simple extension check
+#             if not file.name.endswith('.csv'):
+#                 messages.error(request, "Please upload a valid .csv file.")
+#                 return render(request, 'upload.html', {'form': form})
+#
+#             try:
+#                 data_set = file.read().decode('UTF-8')
+#                 io_string = io.StringIO(data_set)
+#                 reader = csv.reader(io_string, delimiter=',', quotechar="|")
+#                 next(reader, None)  # Skip header
+#
+#                 objs = []
+#                 for row_idx, column in enumerate(reader, start=0):  # start=2 for actual file row number
+#                     # 2. Skip empty rows
+#                     if not any(column):
+#                         continue
+#
+#                     # 3. Validate column count
+#                     if len(column) < EXPECTED_COLUMNS:
+#                         messages.error(request, f"Row {row_idx} is missing data (Expected {EXPECTED_COLUMNS} columns).")
+#                         return render(request, 'upload.html', {'form': form})
+#
+#                     objs.append(QuizQuestion(
+#                         quiz=quiz,
+#                         question_text=column[0],
+#                         option_a=column[1],
+#                         option_b=column[2],
+#                         option_c=column[3],
+#                         option_d=column[4],
+#                         correctAnswer=column[5]
+#                     ))
+#
+#                 if objs:
+#                     QuizQuestion.objects.bulk_create(objs)
+#                     messages.success(request, f"Successfully uploaded {len(objs)} questions.")
+#                     return redirect("dashboard")
+#                 else:
+#                     messages.warning(request, "The CSV file appeared to be empty.")
+#
+#             except Exception as e:
+#                 messages.error(request, f"Error processing file: {str(e)}")
+#     else:
+#         form = CSVUploadForm()
+#
+#     return render(request, 'upload.html', {'form': form})
 
 @login_required
 def upload_csv(request, QuizID):
     quiz = get_object_or_404(Quiz, id=QuizID)
-    EXPECTED_COLUMNS = 6  # Example: [index 0] to [index 6]
+
+    required_columns = [
+        "question_text",
+        "option_a",
+        "option_b",
+        "option_c",
+        "option_d",
+        "correctAnswer",
+    ]
 
     if request.method == "POST":
         form = CSVUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES['csv_file']
 
-            # 1. Simple extension check
-            if not file.name.endswith('.csv'):
+        if form.is_valid():
+            file = request.FILES["csv_file"]
+
+            if not file.name.endswith(".csv"):
                 messages.error(request, "Please upload a valid .csv file.")
-                return render(request, 'upload.html', {'form': form})
+                return render(request, "upload.html", {"form": form})
 
             try:
-                data_set = file.read().decode('UTF-8')
+                data_set = file.read().decode("UTF-8-sig")
                 io_string = io.StringIO(data_set)
-                reader = csv.reader(io_string, delimiter=',', quotechar="|")
-                next(reader, None)  # Skip header
+
+                reader = csv.DictReader(io_string)
+
+                if reader.fieldnames is None:
+                    messages.error(request, "The CSV file has no header row.")
+                    return render(request, "upload.html", {"form": form})
+
+                missing_columns = [
+                    col for col in required_columns
+                    if col not in reader.fieldnames
+                ]
+
+                if missing_columns:
+                    messages.error(
+                        request,
+                        f"Missing required columns: {', '.join(missing_columns)}"
+                    )
+                    return render(request, "upload.html", {"form": form})
 
                 objs = []
-                for row_idx, column in enumerate(reader, start=0):  # start=2 for actual file row number
-                    # 2. Skip empty rows
-                    if not any(column):
+
+                for row_idx, row in enumerate(reader, start=2):
+                    question_text = row.get("question_text", "").strip()
+                    option_a = row.get("option_a", "").strip()
+                    option_b = row.get("option_b", "").strip()
+                    option_c = row.get("option_c", "").strip()
+                    option_d = row.get("option_d", "").strip()
+                    correct_answer = row.get("correctAnswer", "").strip().upper()
+
+                    # Skip fully empty rows
+                    if not any([
+                        question_text,
+                        option_a,
+                        option_b,
+                        option_c,
+                        option_d,
+                        correct_answer
+                    ]):
                         continue
 
-                    # 3. Validate column count
-                    if len(column) < EXPECTED_COLUMNS:
-                        messages.error(request, f"Row {row_idx} is missing data (Expected {EXPECTED_COLUMNS} columns).")
-                        return render(request, 'upload.html', {'form': form})
+                    # Required fields for any question
+                    if not question_text or not option_a or not option_b or not correct_answer:
+                        messages.error(
+                            request,
+                            f"Row {row_idx} is missing question text, option A, option B, or correct answer."
+                        )
+                        return render(request, "upload.html", {"form": form})
+
+                    # Make sure answer is valid
+                    valid_answers = ["A", "B"]
+
+                    if option_c:
+                        valid_answers.append("C")
+
+                    if option_d:
+                        valid_answers.append("D")
+
+                    if correct_answer not in valid_answers:
+                        messages.error(
+                            request,
+                            f"Row {row_idx} has invalid correctAnswer '{correct_answer}'. "
+                            f"Valid answers for this row are: {', '.join(valid_answers)}."
+                        )
+                        return render(request, "upload.html", {"form": form})
 
                     objs.append(QuizQuestion(
                         quiz=quiz,
-                        question_text=column[0],
-                        option_a=column[1],
-                        option_b=column[2],
-                        option_c=column[3],
-                        option_d=column[4],
-                        correctAnswer=column[5]
+                        question_text=question_text,
+                        option_a=option_a,
+                        option_b=option_b,
+                        option_c=option_c,
+                        option_d=option_d,
+                        correctAnswer=correct_answer
                     ))
 
                 if objs:
                     QuizQuestion.objects.bulk_create(objs)
-                    messages.success(request, f"Successfully uploaded {len(objs)} questions.")
+                    messages.success(
+                        request,
+                        f"Successfully uploaded {len(objs)} questions."
+                    )
                     return redirect("dashboard")
                 else:
                     messages.warning(request, "The CSV file appeared to be empty.")
 
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
+
     else:
         form = CSVUploadForm()
 
-    return render(request, 'upload.html', {'form': form})
-
-
+    return render(request, "upload.html", {"form": form})
 def display_quiz(request, public_id):
     quiz = get_object_or_404(Quiz, public_id=public_id)
 
