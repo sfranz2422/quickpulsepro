@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import PollQuestion
-from .forms import PollQuestionForm
+from .models import PollQuestion, FlashCard, FlashCardSet
+from .forms import PollQuestionForm, CreateFlashCardSetForm
 from .models import PollResponse
 from .forms import SelectTeacherForm
 from django.contrib import messages
@@ -32,9 +32,11 @@ def dashboard(request):
     quizs = Quiz.objects.filter(
         teacher=request.user
     ).order_by("-created_at")
-
+    flashcard_sets = FlashCardSet.objects.filter(
+        teacher=request.user
+    ).order_by("-created_at")
     return render(request, "dashboard.html", {
-        "questions": questions,"quizs":quizs
+        "questions": questions,"quizs":quizs,"flashcard_sets": flashcard_sets,
     })
 
 def delete_poll_question(request, id):
@@ -582,3 +584,169 @@ def toggle_poll_question_active(request, question_id):
             messages.success(request, "Question activated.")
 
     return redirect("dashboard")
+
+
+@login_required
+def create_flashcard_set(request, teacher_id):
+    teacher = get_object_or_404(User, id=teacher_id)
+
+    if request.method == "POST":
+        form = CreateFlashCardSetForm(request.POST)
+
+        if form.is_valid():
+            flashcard_set = form.save(commit=False)
+            flashcard_set.teacher = teacher
+            flashcard_set.save()
+
+            return redirect(
+                "upload_flashcards",
+                set_id=flashcard_set.id
+            )
+    else:
+        form = CreateFlashCardSetForm()
+
+    return render(request, "create_flashcard_set.html", {
+        "form": form
+    })
+
+@login_required
+def upload_flashcards(request, set_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        id=set_id,
+        teacher=request.user
+    )
+
+    if request.method == "POST":
+        form = CSVUploadForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            file = request.FILES["csv_file"]
+
+            data_set = file.read().decode("UTF-8-sig")
+            io_string = io.StringIO(data_set)
+            reader = csv.DictReader(io_string)
+
+            objs = []
+
+            for row_idx, row in enumerate(reader, start=2):
+                front = row.get("front", "").strip()
+                back = row.get("back", "").strip()
+
+                if not front and not back:
+                    continue
+
+                if not front or not back:
+                    messages.error(
+                        request,
+                        f"Row {row_idx} is missing front or back text."
+                    )
+                    return render(request, "upload.html", {"form": form})
+
+                objs.append(FlashCard(
+                    flashcard_set=flashcard_set,
+                    front=front,
+                    back=back
+                ))
+
+            if objs:
+                FlashCard.objects.bulk_create(objs)
+                messages.success(
+                    request,
+                    f"Successfully uploaded {len(objs)} flash cards."
+                )
+                return redirect("dashboard")
+
+            messages.warning(request, "The CSV file appeared to be empty.")
+
+    else:
+        form = CSVUploadForm()
+
+    return render(request, "upload.html", {"form": form})
+def start_flashcards(request, public_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        public_id=public_id
+    )
+
+    request.session[f"flashcards_{flashcard_set.id}_index"] = 0
+
+    return redirect(
+        "display_flashcards",
+        public_id=flashcard_set.public_id
+    )
+
+def display_flashcards(request, public_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        public_id=public_id
+    )
+
+    cards = list(flashcard_set.cards.all().order_by("id"))
+
+    if not cards:
+        messages.warning(request, "This flash card set has no cards yet.")
+        return redirect("dashboard")
+
+    session_key = f"flashcards_{flashcard_set.id}_index"
+
+    if session_key not in request.session:
+        request.session[session_key] = 0
+
+    current_index = request.session[session_key]
+    progress_percent = round(((current_index + 1) / len(cards)) * 100)
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "next":
+            request.session[session_key] += 1
+        elif action == "previous":
+            request.session[session_key] = max(0, current_index - 1)
+
+        return redirect(
+            "display_flashcards",
+            public_id=flashcard_set.public_id
+        )
+
+    if current_index >= len(cards):
+        return render(request, "flashcards_finished.html", {
+            "flashcard_set": flashcard_set,
+            "total": len(cards)
+        })
+
+    current_card = cards[current_index]
+
+    return render(request, "display_flashcards.html", {
+        "flashcard_set": flashcard_set,
+        "card": current_card,
+        "current_number": current_index + 1,
+        "total_cards": len(cards),
+        "progress_percent": progress_percent,
+    })
+
+@login_required
+def delete_flashcard_set(request, set_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        id=set_id,
+        teacher=request.user
+    )
+
+    if request.method == "POST":
+        flashcard_set.delete()
+        messages.success(request, "Flash card set deleted.")
+
+    return redirect("dashboard")
+
+
+@login_required
+def download_flashcard_csv_template(request):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="flashcard_template.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(["front", "back"])
+    writer.writerow(["What does HTML stand for?", "HyperText Markup Language"])
+    writer.writerow(["What does CSS do?", "Styles the page"])
+
+    return response

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h1 class="mb-2">{{ flashcard_set.title }}</h1>
+
+    <p class="text-muted">
+        Card {{ current_number }} of {{ total_cards }}
+    </p>
+
+    <div class="progress mb-4">
+        <div class="progress-bar"
+            style="width: {{ progress_percent }}%;">
+        </div>
+    </div>
+
+    <div class="flashcard-container mb-4">
+        <div class="flashcard" id="flashcard">
+            <div class="flashcard-face flashcard-front">
+                <h3>{{ card.front }}</h3>
+                <p class="text-muted mt-3">Click to flip</p>
+            </div>
+
+            <div class="flashcard-face flashcard-back">
+                <h3>{{ card.back }}</h3>
+                <p class="text-muted mt-3">Click to flip back</p>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" class="d-flex justify-content-between">
+        {% csrf_token %}
+
+        <button name="action"
+                value="previous"
+                class="btn btn-outline-secondary"
+                {% if current_number == 1 %}disabled{% endif %}>
+            Previous
+        </button>
+
+        <button name="action"
+                value="next"
+                class="btn btn-primary">
+            Next
+        </button>
+    </form>
+
+</div>
+
+<style>
+    .flashcard-container {
+        perspective: 1000px;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .flashcard {
+        width: 100%;
+        min-height: 300px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s;
+        cursor: pointer;
+    }
+
+    .flashcard.flipped {
+        transform: rotateY(180deg);
+    }
+
+    .flashcard-face {
+        position: absolute;
+        width: 100%;
+        min-height: 300px;
+        backface-visibility: hidden;
+        border: 1px solid #dee2e6;
+        border-radius: 1rem;
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        text-align: center;
+        background: white;
+    }
+
+    .flashcard-back {
+        transform: rotateY(180deg);
+    }
+</style>
+
+<script>
+    const card = document.getElementById("flashcard");
+
+    card.addEventListener("click", function () {
+        card.classList.toggle("flipped");
+    });
+</script>
+
+{% endblock %}

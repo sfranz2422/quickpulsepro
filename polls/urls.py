@@ -36,4 +36,37 @@ path(
     views.toggle_poll_question_active,
     name="toggle_poll_question_active"
 ),
+path(
+    "flashcards/create/<int:teacher_id>/",
+    views.create_flashcard_set,
+    name="create_flashcard_set"
+),
+
+path(
+    "flashcards/upload/<int:set_id>/",
+    views.upload_flashcards,
+    name="upload_flashcards"
+),
+
+path(
+    "flashcards/start/<uuid:public_id>/",
+    views.start_flashcards,
+    name="start_flashcards"
+),
+
+path(
+    "flashcards/display/<uuid:public_id>/",
+    views.display_flashcards,
+    name="display_flashcards"
+),
+path(
+    "flashcards/delete/<int:set_id>/",
+    views.delete_flashcard_set,
+    name="delete_flashcard_set"
+),
+path(
+    "flashcards/template/download/",
+    views.download_flashcard_csv_template,
+    name="download_flashcard_csv_template"
+),
 ]

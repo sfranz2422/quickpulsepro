@@ -2,268 +2,348 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="mb-1">Teacher Dashboard</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Teacher Dashboard</h1>
 
-        <p class="text-muted mb-0">
-            Logged in as {{ user.username }}
-        </p>
-    </div>
-</div>
-
-<!-- ACTION BUTTONS -->
-<div class="row mb-4">
-
-    <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
-
-                <div>
-                    <h4 class="card-title">
-                        Live Polling
-                    </h4>
-
-                    <p class="text-muted">
-                        Create live classroom polling questions and view results in real time.
-                    </p>
-                </div>
-
-                <div>
-                    <a class="btn btn-dark w-100"
-                       href="{% url 'create_question' %}">
-                        Create New Poll Question
-                    </a>
-                </div>
-
-            </div>
+            <p class="text-muted mb-0">
+                Logged in as {{ user.username }}
+            </p>
         </div>
     </div>
 
-    <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
+    <!-- ACTION BUTTONS -->
+    <div class="row mb-4">
 
-                <div>
-                    <h4 class="card-title">
-                        Quiz System
-                    </h4>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
 
-                    <p class="text-muted">
-                        Create self-paced quizzes and upload questions using CSV files.
-                    </p>
+                    <div>
+                        <h4 class="card-title">
+                            Live Polling
+                        </h4>
+
+                        <p class="text-muted">
+                            Create live classroom polling questions and view results in real time.
+                        </p>
+                    </div>
+
+                    <div>
+                        <a class="btn btn-dark w-100"
+                           href="{% url 'create_question' %}">
+                            Create New Poll Question
+                        </a>
+                    </div>
+
                 </div>
-
-                <div>
-                    <a class="btn btn-dark w-100"
-                       href="{% url 'create_quiz' user.id %}">
-                        Create New Quiz
-                    </a>
-                </div>
-
             </div>
         </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+
+                    <div>
+                        <h4 class="card-title">
+                            Quiz System
+                        </h4>
+
+                        <p class="text-muted">
+                            Create self-paced quizzes and upload questions using CSV files.
+                        </p>
+                    </div>
+
+                    <div>
+                        <a class="btn btn-dark w-100"
+                           href="{% url 'create_quiz' user.id %}">
+                            Create New Quiz
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     </div>
 
-</div>
+    <!-- STUDENT ACCESS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
 
-<!-- STUDENT ACCESS -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+            <h4 class="card-title">
+                Student Access
+            </h4>
 
-        <h4 class="card-title">
-            Student Access
-        </h4>
+            <p class="mb-2">
+                Give students your Teacher ID or send them directly to your polling room.
+            </p>
 
-        <p class="mb-2">
-            Give students your Teacher ID or send them directly to your polling room.
-        </p>
-
-        <div class="mb-3">
+            <div class="mb-3">
             <span class="badge bg-dark fs-6">
                 Teacher ID: {{ user.id }}
             </span>
+            </div>
+
+            <div>
+                <strong>Polling Student Room:</strong>
+                <br>
+
+                <a href="{% url 'student_room' user.id %}">
+                    https://quickpulsepro.onrender.com/student/{{ user.id }}/
+                </a>
+            </div>
+
         </div>
-
-        <div>
-            <strong>Polling Student Room:</strong>
-            <br>
-
-            <a href="{% url 'student_room' user.id %}">
-                https://quickpulsepro.onrender.com/student/{{ user.id }}/
-            </a>
-        </div>
-
     </div>
-</div>
 
-<!-- POLLING QUESTIONS -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+    <!-- POLLING QUESTIONS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
 
-            <h4 class="card-title mb-0">
-                Your Polling Questions
-            </h4>
+                <h4 class="card-title mb-0">
+                    Your Polling Questions
+                </h4>
 
-            <span class="badge bg-secondary">
+                <span class="badge bg-secondary">
                 {{ questions|length }} Total
             </span>
 
-        </div>
+            </div>
 
-        {% if questions %}
+            {% if questions %}
 
-            <div class="list-group">
+                <div class="list-group">
 
-                {% for q in questions %}
+                    {% for q in questions %}
 
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
 
-                        <div>
+                            <div>
 
-                            <strong>
-                                {{ q.question_text }}
-                            </strong>
+                                <strong>
+                                    {{ q.question_text }}
+                                </strong>
 
-                            <div class="text-muted small">
-                                Created: {{ q.created_at|date:"M d, Y g:i A" }}
-                            </div>
+                                <div class="text-muted small">
+                                    Created: {{ q.created_at|date:"M d, Y g:i A" }}
+                                </div>
 
-                            {% if q.is_active %}
-                                <span class="badge bg-success mt-2">
+                                {% if q.is_active %}
+                                    <span class="badge bg-success mt-2">
                                     Active
                                 </span>
-                            {% else %}
-                                <span class="badge bg-secondary mt-2">
+                                {% else %}
+                                    <span class="badge bg-secondary mt-2">
                                     Past
                                 </span>
-                            {% endif %}
+                                {% endif %}
+
+                            </div>
+
+                            <div class="d-flex gap-2">
+
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'question_results' q.id %}">
+                                    View Results
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'toggle_poll_question_active' q.id %}">
+                                    {% csrf_token %}
+
+                                    {% if q.is_active %}
+                                        <button type="submit" class="btn btn-outline-warning btn-sm">
+                                            Deactivate
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-outline-success btn-sm">
+                                            Make Active
+                                        </button>
+                                    {% endif %}
+                                </form>
+
+                                <a href="{% url 'delete_poll_question' q.id %}" class="btn btn-outline-danger btn-sm">Delete</a>
+
+                            </div>
 
                         </div>
 
-             <div class="d-flex gap-2">
+                    {% endfor %}
 
-    <a class="btn btn-outline-primary btn-sm"
-       href="{% url 'question_results' q.id %}">
-        View Results
-    </a>
+                </div>
 
-    <form method="POST"
-          action="{% url 'toggle_poll_question_active' q.id %}">
-        {% csrf_token %}
+            {% else %}
 
-        {% if q.is_active %}
-            <button type="submit" class="btn btn-outline-warning btn-sm">
-                Deactivate
-            </button>
-        {% else %}
-            <button type="submit" class="btn btn-outline-success btn-sm">
-                Make Active
-            </button>
-        {% endif %}
-    </form>
+                <p class="text-muted mb-0">
+                    No polling questions created yet.
+                </p>
 
-                 <a href="{% url 'delete_poll_question' q.id %}" class="btn btn-outline-danger btn-sm">Delete</a>
+            {% endif %}
 
-</div>
-
-                    </div>
-
-                {% endfor %}
-
-            </div>
-
-        {% else %}
-
-            <p class="text-muted mb-0">
-                No polling questions created yet.
-            </p>
-
-        {% endif %}
-
+        </div>
     </div>
-</div>
 
-<!-- QUIZZES -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+    <!-- QUIZZES -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
 
-            <h4 class="card-title mb-0">
-                Your Quizzes
-            </h4>
+                <h4 class="card-title mb-0">
+                    Your Quizzes
+                </h4>
 
-            <span class="badge bg-secondary">
+                <span class="badge bg-secondary">
                 {{ quizs|length }} Total
             </span>
 
-        </div>
+            </div>
 
-        {% if quizs %}
+            {% if quizs %}
 
-            <div class="list-group">
+                <div class="list-group">
 
-                {% for q in quizs %}
+                    {% for q in quizs %}
 
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
 
-                        <div>
+                            <div>
 
-                            <strong>
-                                {{ q.title }}
-                            </strong>
+                                <strong>
+                                    {{ q.title }}
+                                </strong>
 
-                            <div class="text-muted small mt-1">
-                                Created: {{ q.created_at|date:"M d, Y g:i A" }}
+                                <div class="text-muted small mt-1">
+                                    Created: {{ q.created_at|date:"M d, Y g:i A" }}
+                                </div>
+
+                                <div class="text-muted small mt-2">
+                                    Student Quiz Link:
+                                </div>
+
+                                <a href="{% url 'start_quiz' q.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'start_quiz' q.public_id %}
+                                </a>
+
                             </div>
 
-                            <div class="text-muted small mt-2">
-                                Student Quiz Link:
-                            </div>
+                            <div class="d-flex gap-2">
 
-                            <a href="{% url 'start_quiz' q.public_id %}">
-                                https://quickpulsepro.onrender.com{% url 'start_quiz' q.public_id %}
-                            </a>
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'quiz_results' q.id %}">
+                                    View Results
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'delete_quiz' q.id %}"
+                                      onsubmit="return confirm('Delete this quiz? This will also delete its questions and responses.');">
+                                    {% csrf_token %}
+
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
 
                         </div>
 
-                    <div class="d-flex gap-2">
+                    {% endfor %}
 
-    <a class="btn btn-outline-primary btn-sm"
-       href="{% url 'quiz_results' q.id %}">
-        View Results
-    </a>
+                </div>
 
-    <form method="POST"
-          action="{% url 'delete_quiz' q.id %}"
-          onsubmit="return confirm('Delete this quiz? This will also delete its questions and responses.');">
-        {% csrf_token %}
+            {% else %}
 
-        <button type="submit" class="btn btn-outline-danger btn-sm">
-            Delete
-        </button>
-    </form>
+                <p class="text-muted mb-0">
+                    No quizzes created yet.
+                </p>
 
-</div>
+            {% endif %}
 
-                    </div>
+        </div>
+    </div>
+    <!-- FLASH CARDS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
 
-                {% endfor %}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h4 class="card-title mb-0">
+                    Your Flash Card Sets
+                </h4>
+
+                <a class="btn btn-dark btn-sm"
+                   href="{% url 'create_flashcard_set' user.id %}">
+                    Create Flash Card Set
+                </a>
 
             </div>
 
-        {% else %}
+            {% if flashcard_sets %}
 
-            <p class="text-muted mb-0">
-                No quizzes created yet.
-            </p>
+                <div class="list-group">
 
-        {% endif %}
+                    {% for f in flashcard_sets %}
 
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <strong>
+                                    {{ f.title }}
+                                </strong>
+
+                                <div class="text-muted small mt-1">
+                                    Created: {{ f.created_at|date:"M d, Y g:i A" }}
+                                </div>
+
+                                <div class="text-muted small mt-2">
+                                    Student Flash Card Link:
+                                </div>
+
+                                <a href="{% url 'start_flashcards' f.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'start_flashcards' f.public_id %}
+                                </a>
+
+                            </div>
+
+                            <div class="d-flex gap-2">
+
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'start_flashcards' f.public_id %}">
+                                    Preview
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'delete_flashcard_set' f.id %}"
+                                      onsubmit="return confirm('Delete this flash card set?');">
+                                    {% csrf_token %}
+
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    No flash card sets created yet.
+                </p>
+
+            {% endif %}
+
+        </div>
     </div>
-</div>
-
 {% endblock %}

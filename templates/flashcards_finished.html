@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="card shadow-sm text-center">
+        <div class="card-body p-5">
+
+            <h1 class="mb-3">Flash Card Set Complete</h1>
+
+            <p class="lead">
+                You finished reviewing:
+            </p>
+
+            <h3 class="mb-4">
+                {{ flashcard_set.title }}
+            </h3>
+
+            <p class="text-muted">
+                Total cards reviewed: {{ total }}
+            </p>
+
+            <div class="d-flex justify-content-center gap-2 mt-4">
+
+                <a href="{% url 'start_flashcards' flashcard_set.public_id %}"
+                   class="btn btn-primary">
+                    Review Again
+                </a>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

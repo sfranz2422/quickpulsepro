@@ -92,3 +92,38 @@ class PollResponse(models.Model):
 
     def __str__(self):
         return f"{self.question.question_text} - {self.selected_option}"
+
+
+class FlashCardSet(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="flashcard_sets"
+    )
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+
+class FlashCard(models.Model):
+    flashcard_set = models.ForeignKey(
+        FlashCardSet,
+        on_delete=models.CASCADE,
+        related_name="cards"
+    )
+
+    front = models.CharField(max_length=255)
+    back = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.front
