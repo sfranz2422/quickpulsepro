@@ -1,21 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Create Question</h1>
-
-<form method="post">
-    {% csrf_token %}
-
-    <div class="mb-3">
-        {{ form.title.label_tag }}
-        {{ form.title }}
-    </div>
-
-    <div class="mb-3">
-
-        {{ form.description }}
-    </div>
-
+<h1>Create Quiz</h1>
 <div class="mb-4">
 
     <a class="btn btn-outline-secondary"
@@ -26,8 +12,22 @@
     </a>
 
 </div>
+<form method="post">
+    {% csrf_token %}
+
+    <div class="mb-3">
+
+        {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+
+        {{ form.description }}
+    </div>
+
+
     <button class="btn btn-dark">
-        Create Quiz
+        Continue to Upload Step
     </button>
 </form>
 <br>

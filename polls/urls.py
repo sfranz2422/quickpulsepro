@@ -30,5 +30,10 @@ path(
     views.download_quiz_csv_template,
     name="download_quiz_csv_template"
 ),
-
+path("delete_quiz/<int:quiz_id>/", views.delete_quiz, name="delete_quiz"),
+path(
+    "poll_question/<int:question_id>/toggle/",
+    views.toggle_poll_question_active,
+    name="toggle_poll_question_active"
+),
 ]

@@ -541,3 +541,44 @@ def download_quiz_csv_template(request):
     ])
 
     return response
+
+@login_required
+def delete_quiz(request, quiz_id):
+    quiz = get_object_or_404(
+        Quiz,
+        id=quiz_id,
+        teacher=request.user
+    )
+
+    if request.method == "POST":
+        quiz.delete()
+        messages.success(request, "Quiz deleted.")
+        return redirect("dashboard")
+
+    return redirect("dashboard")
+
+
+@login_required
+def toggle_poll_question_active(request, question_id):
+    question = get_object_or_404(
+        PollQuestion,
+        id=question_id,
+        teacher=request.user
+    )
+
+    if request.method == "POST":
+        if question.is_active:
+            question.is_active = False
+            question.save()
+            messages.success(request, "Question deactivated.")
+        else:
+            # Optional: only allow one active polling question per teacher
+            PollQuestion.objects.filter(
+                teacher=request.user
+            ).update(is_active=False)
+
+            question.is_active = True
+            question.save()
+            messages.success(request, "Question activated.")
+
+    return redirect("dashboard")

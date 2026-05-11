@@ -143,10 +143,31 @@
 
                         </div>
 
-                        <a class="btn btn-outline-primary btn-sm"
-                           href="{% url 'question_results' q.id %}">
-                            View Results
-                        </a>
+             <div class="d-flex gap-2">
+
+    <a class="btn btn-outline-primary btn-sm"
+       href="{% url 'question_results' q.id %}">
+        View Results
+    </a>
+
+    <form method="POST"
+          action="{% url 'toggle_poll_question_active' q.id %}">
+        {% csrf_token %}
+
+        {% if q.is_active %}
+            <button type="submit" class="btn btn-outline-warning btn-sm">
+                Deactivate
+            </button>
+        {% else %}
+            <button type="submit" class="btn btn-outline-success btn-sm">
+                Make Active
+            </button>
+        {% endif %}
+    </form>
+
+                 <a href="{% url 'delete_poll_question' q.id %}" class="btn btn-outline-danger btn-sm">Delete</a>
+
+</div>
 
                     </div>
 
@@ -209,10 +230,24 @@
 
                         </div>
 
-                        <a class="btn btn-outline-primary btn-sm"
-                           href="{% url 'quiz_results' q.id %}">
-                            View Results
-                        </a>
+                    <div class="d-flex gap-2">
+
+    <a class="btn btn-outline-primary btn-sm"
+       href="{% url 'quiz_results' q.id %}">
+        View Results
+    </a>
+
+    <form method="POST"
+          action="{% url 'delete_quiz' q.id %}"
+          onsubmit="return confirm('Delete this quiz? This will also delete its questions and responses.');">
+        {% csrf_token %}
+
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            Delete
+        </button>
+    </form>
+
+</div>
 
                     </div>
 
