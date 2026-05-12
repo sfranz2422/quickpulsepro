@@ -23,6 +23,7 @@ from .models import QuizResponse
 import csv
 from django.http import HttpResponse
 from .models import FlashCardResponse
+import random
 
 
 @login_required
@@ -394,7 +395,19 @@ def upload_csv(request, QuizID):
 def display_quiz(request, public_id):
     quiz = get_object_or_404(Quiz, public_id=public_id)
 
-    questions = list(quiz.questions.all().order_by("id"))
+    question_order = request.session.get(
+        f"quiz_{quiz.id}_question_order",
+        []
+    )
+
+    questions = list(
+        QuizQuestion.objects.filter(id__in=question_order)
+    )
+
+    # Preserve shuffled order
+    questions.sort(
+        key=lambda q: question_order.index(q.id)
+    )
 
     if not questions:
         messages.warning(request, "This quiz has no questions yet.")
@@ -473,11 +486,24 @@ def display_quiz(request, public_id):
 def start_quiz(request, public_id):
     quiz = get_object_or_404(Quiz, public_id=public_id)
 
+    questions = list(
+        quiz.questions.all().values_list("id", flat=True)
+    )
+
+    random.shuffle(questions)
+
+    # Store randomized order in session
+    request.session[f"quiz_{quiz.id}_question_order"] = questions
+
+    # Reset quiz progress
     request.session[f"quiz_{quiz.id}_current_index"] = 0
     request.session[f"quiz_{quiz.id}_correct"] = 0
     request.session[f"quiz_{quiz.id}_wrong"] = 0
 
-    return redirect("display_quiz", public_id=quiz.public_id)
+    return redirect(
+        "display_quiz",
+        public_id=quiz.public_id
+    )
 
 
 @login_required
