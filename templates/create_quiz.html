@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Create Quiz</h1>
-<div class="mb-4">
+    <h1>Create Quiz</h1>
+    <div class="mb-4">
 
-    <a class="btn btn-outline-secondary"
-       href="{% url 'download_quiz_csv_template' %}">
+        <a class="btn btn-outline-secondary"
+           href="{% url 'download_quiz_csv_template' %}">
 
-        Download CSV Template
+            Download CSV Template
 
-    </a>
+        </a>
 
-</div>
-<form method="post">
-    {% csrf_token %}
-
-    <div class="mb-3">
-
-        {{ form.title }}
     </div>
+    <form method="post">
+        {% csrf_token %}
 
-    <div class="mb-3">
+        <div class="mb-3">
 
-        {{ form.description }}
-    </div>
+            {{ form.title }}
+        </div>
+
+        <div class="mb-3">
+
+            {{ form.description }}
+        </div>
 
 
-    <button class="btn btn-dark">
-        Continue to Upload Step
-    </button>
-</form>
-<br>
-<a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
+        <button class="btn btn-dark">
+            Continue to Upload Step
+        </button>
+    </form>
+    <br>
+    <a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
 {% endblock %}

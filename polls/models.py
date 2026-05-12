@@ -21,6 +21,7 @@ class PollQuestion(models.Model):
     def __str__(self):
         return self.question_text
 
+
 class Quiz(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -43,8 +44,8 @@ class Quiz(models.Model):
     def __str__(self):
         return self.title
 
-class QuizQuestion(models.Model):
 
+class QuizQuestion(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
     question_text = models.CharField(max_length=255)
     option_a = models.CharField(max_length=100)
@@ -53,8 +54,10 @@ class QuizQuestion(models.Model):
     option_d = models.CharField(max_length=100, blank=True)
     correctAnswer = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return self.question_text
+
 
 class QuizResponse(models.Model):
     quiz = models.ForeignKey(
@@ -127,3 +130,24 @@ class FlashCard(models.Model):
 
     def __str__(self):
         return self.front
+
+
+class FlashCardResponse(models.Model):
+    flashcard_set = models.ForeignKey(
+        FlashCardSet,
+        on_delete=models.CASCADE,
+        related_name="responses"
+    )
+
+    card = models.ForeignKey(
+        FlashCard,
+        on_delete=models.CASCADE,
+        related_name="responses"
+    )
+
+    knew_it = models.BooleanField()
+
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.flashcard_set.title} - {self.card.front}"

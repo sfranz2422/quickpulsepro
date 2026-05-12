@@ -1,102 +1,202 @@
 {% extends "base.html" %}
+{% block extra_css %}
 
+    <style>
+        .flashcard-page {
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            flex-grow: 1;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .flashcard {
+            width: 100%;
+            min-height: 60vh;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            min-height: 60vh;
+            height: 100%;
+            backface-visibility: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 1rem;
+            box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .12);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            background: white;
+        }
+
+        .flashcard-front h3,
+        .flashcard-back h3 {
+            font-size: 2rem;
+            line-height: 1.3;
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+
+        @media (max-width: 576px) {
+
+            .container {
+                max-width: 100%;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+
+            .flashcard-page {
+                min-height: 90vh;
+            }
+
+            .flashcard {
+                min-height: 68vh;
+            }
+
+            .flashcard-face {
+                min-height: 68vh;
+                padding: 1.5rem;
+            }
+
+            .flashcard-front h3,
+            .flashcard-back h3 {
+                font-size: 1.75rem;
+            }
+
+            .flashcard-controls {
+                position: sticky;
+                bottom: 0;
+                background: white;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+
+            .flashcard-controls .btn {
+                font-size: 1.1rem;
+                padding: 0.75rem 1rem;
+            }
+        }
+    </style>
+
+{% endblock %}
 {% block content %}
 
-<div class="container mt-4">
+    <div class="container mt-4">
 
-    <h1 class="mb-2">{{ flashcard_set.title }}</h1>
+        <h1 class="mb-2">{{ flashcard_set.title }}</h1>
 
-    <p class="text-muted">
-        Card {{ current_number }} of {{ total_cards }}
-    </p>
+        <p class="text-muted">
+            Card {{ current_number }} of {{ total_cards }}
+        </p>
 
-    <div class="progress mb-4">
-        <div class="progress-bar"
-            style="width: {{ progress_percent }}%;">
-        </div>
-    </div>
-
-    <div class="flashcard-container mb-4">
-        <div class="flashcard" id="flashcard">
-            <div class="flashcard-face flashcard-front">
-                <h3>{{ card.front }}</h3>
-                <p class="text-muted mt-3">Click to flip</p>
-            </div>
-
-            <div class="flashcard-face flashcard-back">
-                <h3>{{ card.back }}</h3>
-                <p class="text-muted mt-3">Click to flip back</p>
+        <div class="progress mb-4">
+            <div class="progress-bar"
+                 style="width: {{ progress_percent }}%;">
             </div>
         </div>
+
+        <div class="flashcard-container mb-4">
+            <div class="flashcard" id="flashcard">
+                <div class="flashcard-face flashcard-front">
+                    <h3>{{ card.front }}</h3>
+                    <p class="text-muted mt-3">Click to flip</p>
+                </div>
+
+                <div class="flashcard-face flashcard-back">
+                    <h3>{{ card.back }}</h3>
+                    <p class="text-muted mt-3">Click to flip back</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" class="d-grid gap-2 flashcard-controls">
+            {% csrf_token %}
+
+            <button name="action"
+                    value="thumbs_up"
+                    class="btn btn-success btn-lg">
+                👍 I knew it
+            </button>
+
+            <button name="action"
+                    value="thumbs_down"
+                    class="btn btn-danger btn-lg">
+                👎 I need more practice
+            </button>
+        </form>
+
     </div>
 
-    <form method="POST" class="d-flex justify-content-between">
-        {% csrf_token %}
+    <style>
+        .flashcard-container {
+            perspective: 1000px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
 
-        <button name="action"
-                value="previous"
-                class="btn btn-outline-secondary"
-                {% if current_number == 1 %}disabled{% endif %}>
-            Previous
-        </button>
+        .flashcard {
+            width: 100%;
+            min-height: 300px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
 
-        <button name="action"
-                value="next"
-                class="btn btn-primary">
-            Next
-        </button>
-    </form>
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
 
-</div>
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            min-height: 300px;
+            backface-visibility: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 1rem;
+            box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            background: white;
+        }
 
-<style>
-    .flashcard-container {
-        perspective: 1000px;
-        max-width: 700px;
-        margin: 0 auto;
-    }
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+    </style>
 
-    .flashcard {
-        width: 100%;
-        min-height: 300px;
-        position: relative;
-        transform-style: preserve-3d;
-        transition: transform 0.6s;
-        cursor: pointer;
-    }
+    <script>
+        const card = document.getElementById("flashcard");
 
-    .flashcard.flipped {
-        transform: rotateY(180deg);
-    }
-
-    .flashcard-face {
-        position: absolute;
-        width: 100%;
-        min-height: 300px;
-        backface-visibility: hidden;
-        border: 1px solid #dee2e6;
-        border-radius: 1rem;
-        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 2rem;
-        text-align: center;
-        background: white;
-    }
-
-    .flashcard-back {
-        transform: rotateY(180deg);
-    }
-</style>
-
-<script>
-    const card = document.getElementById("flashcard");
-
-    card.addEventListener("click", function () {
-        card.classList.toggle("flipped");
-    });
-</script>
+        card.addEventListener("click", function () {
+            card.classList.toggle("flipped");
+        });
+    </script>
 
 {% endblock %}

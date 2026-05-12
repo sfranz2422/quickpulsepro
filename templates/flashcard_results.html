@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="container mt-4">
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h1 class="mb-1">{{ flashcard_set.title }}</h1>
+                <p class="text-muted mb-0">
+                    Flash Card Results
+                </p>
+            </div>
+
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        {% if results %}
+
+            {% for result in results %}
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+
+                        <h5 class="card-title">
+                            Card {{ forloop.counter }}
+                        </h5>
+
+                        <p class="fw-semibold mb-1">
+                            Front: {{ result.card.front }}
+                        </p>
+
+                        <p class="text-muted">
+                            Back: {{ result.card.back }}
+                        </p>
+
+                        <div class="row text-center mt-4">
+
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3">
+                                    <h3>{{ result.total }}</h3>
+                                    <div class="text-muted">Total</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3 bg-success-subtle">
+                                    <h3>{{ result.knew }}</h3>
+                                    <div>Knew It</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3 bg-danger-subtle">
+                                    <h3>{{ result.struggled }}</h3>
+                                    <div>Needs Practice</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3 bg-warning-subtle">
+                                    <h3>{{ result.percent_struggled }}%</h3>
+                                    <div>Struggled</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {% if result.percent_struggled >= 50 %}
+                            <div class="alert alert-warning mt-3 mb-0">
+                                Many students are struggling with this card.
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="alert alert-secondary">
+                No flash card response data yet.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+{% endblock %}

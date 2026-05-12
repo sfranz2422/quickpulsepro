@@ -2,9 +2,86 @@
 <html>
 <head>
     <title>QuickPulse Pro</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-size: 1rem;
+        }
+
+        .container {
+            max-width: 1100px;
+        }
+
+        .student-home-title {
+            font-size: 2rem;
+        }
+
+        @media (max-width: 576px) {
+            .student-home-title {
+                font-size: 1.5rem;
+                line-height: 1.2;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                font-size: 1.08rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            h4 {
+                font-size: 1.25rem;
+            }
+
+            .container {
+                max-width: 100%;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .card-body {
+                padding: 1.25rem;
+            }
+
+            .btn {
+                font-size: 1rem;
+                padding: 0.65rem 0.9rem;
+            }
+
+            .btn-sm {
+                font-size: 0.95rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            .list-group-item {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 0.75rem;
+            }
+
+            .list-group-item .btn,
+            .list-group-item form,
+            .list-group-item form button {
+                width: 100%;
+            }
+
+            a {
+                word-break: break-word;
+            }
+
+            .badge {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+
+    {% block extra_css %}
+    {% endblock %}
 </head>
 
 <body>
@@ -22,7 +99,7 @@
         <!-- Right side -->
         <div>
             {% if user.is_authenticated %}
-                   <span class="text-white me-2">
+                <span class="text-white me-2">
                     {{ user.username }}
                 </span>
                 <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm me-2">
@@ -30,40 +107,40 @@
                 </a>
 
 
-{#should use post to change state#}
-               <form action="{% url 'logout' %}" method="post" class="d-inline">
-    {% csrf_token %}
-    <button class="btn btn-outline-light btn-sm">Logout</button>
-</form>
+                {#should use post to change state#}
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-light btn-sm">Logout</button>
+                </form>
 
-  {% else %}
-    <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm me-2">
-        Teacher Login
-    </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm me-2">
+                    Teacher Login
+                </a>
 
-    <a href="{% url 'register_teacher' %}" class="btn btn-primary btn-sm">
-        Create Teacher Account
-    </a>
-{% endif %}
+                <a href="{% url 'register_teacher' %}" class="btn btn-primary btn-sm">
+                    Create Teacher Account
+                </a>
+            {% endif %}
         </div>
 
     </div>
 </nav>
 
 <div class="container">
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert
             {% if message.tags == 'error' %}
                 alert-danger
             {% else %}
                 alert-{{ message.tags }}
             {% endif %}
         ">
-            {{ message }}
-        </div>
-    {% endfor %}
-{% endif %}
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
     {% block content %}
     {% endblock %}
 </div>

@@ -22,6 +22,7 @@ from polls.forms import CreateQuizForm
 from .models import QuizResponse
 import csv
 from django.http import HttpResponse
+from .models import FlashCardResponse
 
 
 @login_required
@@ -36,8 +37,9 @@ def dashboard(request):
         teacher=request.user
     ).order_by("-created_at")
     return render(request, "dashboard.html", {
-        "questions": questions,"quizs":quizs,"flashcard_sets": flashcard_sets,
+        "questions": questions, "quizs": quizs, "flashcard_sets": flashcard_sets,
     })
+
 
 def delete_poll_question(request, id):
     question = get_object_or_404(
@@ -74,9 +76,9 @@ def create_question(request):
     return render(request, "create_question.html", {
         "form": form
     })
+
+
 def student_landing(request):
-
-
     if request.method == "POST":
         form = SelectTeacherForm(request.POST)
 
@@ -87,27 +89,25 @@ def student_landing(request):
     else:
         form = SelectTeacherForm()
 
-    return render(request,"student_landing.html", {"form":form})
-
-
+    return render(request, "student_landing.html", {"form": form})
 
 
 def student_room(request, teacher_id):
     # SELECT * FROM auth_user WHERE id = teacher_id;
-    teacher = get_object_or_404(User,id=teacher_id)
+    teacher = get_object_or_404(User, id=teacher_id)
 
     question = PollQuestion.objects.filter(
         teacher=teacher,
         is_active=True
     ).order_by("-created_at").first()
 
-    return render(request,"student_room.html",{"teacher":teacher, "question":question})
+    return render(request, "student_room.html", {"teacher": teacher, "question": question})
+
 
 def submit_response(request, teacher_id):
     # SELECT * FROM auth_user WHERE id = teacher_id;
 
-    teacher = get_object_or_404(User,id=teacher_id)
-
+    teacher = get_object_or_404(User, id=teacher_id)
 
     question = PollQuestion.objects.filter(
         teacher=teacher,
@@ -134,7 +134,7 @@ def submit_response(request, teacher_id):
                 selected_option=selected_option
             )
             request.session[session_key] = True
-            return render(request, "thank_you.html",{"teacher":teacher, "question":question})
+            return render(request, "thank_you.html", {"teacher": teacher, "question": question})
 
     return redirect("student_room", teacher_id=teacher_id)
 
@@ -180,6 +180,7 @@ def question_results(request, question_id):
         "total_responses": total_responses,
     })
 
+
 def register_teacher(request):
     if request.method == "POST":
         form = TeacherRegistrationForm(request.POST)
@@ -198,7 +199,7 @@ def register_teacher(request):
 
 
 @login_required
-def create_quiz(request,teacher_id):
+def create_quiz(request, teacher_id):
     teacher = get_object_or_404(User, id=teacher_id)
     if request.method == "POST":
         form = CreateQuizForm(request.POST)
@@ -211,6 +212,7 @@ def create_quiz(request,teacher_id):
     else:
         form = CreateQuizForm()
     return render(request, "create_quiz.html", {"form": form})
+
 
 #
 # @login_required
@@ -387,6 +389,8 @@ def upload_csv(request, QuizID):
         form = CSVUploadForm()
 
     return render(request, "upload.html", {"form": form})
+
+
 def display_quiz(request, public_id):
     quiz = get_object_or_404(Quiz, public_id=public_id)
 
@@ -465,8 +469,8 @@ def display_quiz(request, public_id):
         "wrong": request.session[session_wrong_key],
     })
 
-def start_quiz(request, public_id):
 
+def start_quiz(request, public_id):
     quiz = get_object_or_404(Quiz, public_id=public_id)
 
     request.session[f"quiz_{quiz.id}_current_index"] = 0
@@ -511,9 +515,9 @@ def quiz_results(request, quiz_id):
         "results": results,
     })
 
+
 @login_required
 def download_quiz_csv_template(request):
-
     response = HttpResponse(content_type='text/csv')
 
     response['Content-Disposition'] = (
@@ -543,6 +547,7 @@ def download_quiz_csv_template(request):
     ])
 
     return response
+
 
 @login_required
 def delete_quiz(request, quiz_id):
@@ -609,6 +614,7 @@ def create_flashcard_set(request, teacher_id):
         "form": form
     })
 
+
 @login_required
 def upload_flashcards(request, set_id):
     flashcard_set = get_object_or_404(
@@ -663,6 +669,8 @@ def upload_flashcards(request, set_id):
         form = CSVUploadForm()
 
     return render(request, "upload.html", {"form": form})
+
+
 def start_flashcards(request, public_id):
     flashcard_set = get_object_or_404(
         FlashCardSet,
@@ -675,6 +683,7 @@ def start_flashcards(request, public_id):
         "display_flashcards",
         public_id=flashcard_set.public_id
     )
+
 
 def display_flashcards(request, public_id):
     flashcard_set = get_object_or_404(
@@ -698,10 +707,14 @@ def display_flashcards(request, public_id):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "next":
+        if action in ["thumbs_up", "thumbs_down"]:
+            FlashCardResponse.objects.create(
+                flashcard_set=flashcard_set,
+                card=cards[current_index],
+                knew_it=(action == "thumbs_up")
+            )
+
             request.session[session_key] += 1
-        elif action == "previous":
-            request.session[session_key] = max(0, current_index - 1)
 
         return redirect(
             "display_flashcards",
@@ -723,6 +736,7 @@ def display_flashcards(request, public_id):
         "total_cards": len(cards),
         "progress_percent": progress_percent,
     })
+
 
 @login_required
 def delete_flashcard_set(request, set_id):
@@ -750,3 +764,39 @@ def download_flashcard_csv_template(request):
     writer.writerow(["What does CSS do?", "Styles the page"])
 
     return response
+
+
+@login_required
+def flashcard_results(request, set_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        id=set_id,
+        teacher=request.user
+    )
+
+    cards = flashcard_set.cards.all().order_by("id")
+
+    results = []
+
+    for card in cards:
+        total = card.responses.count()
+        knew = card.responses.filter(knew_it=True).count()
+        struggled = card.responses.filter(knew_it=False).count()
+
+        if total > 0:
+            percent_struggled = round((struggled / total) * 100)
+        else:
+            percent_struggled = 0
+
+        results.append({
+            "card": card,
+            "total": total,
+            "knew": knew,
+            "struggled": struggled,
+            "percent_struggled": percent_struggled,
+        })
+
+    return render(request, "flashcard_results.html", {
+        "flashcard_set": flashcard_set,
+        "results": results,
+    })

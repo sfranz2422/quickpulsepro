@@ -15,7 +15,8 @@
     <!-- ACTION BUTTONS -->
     <div class="row mb-4">
 
-        <div class="col-md-6 mb-3">
+        <!-- POLLING -->
+        <div class="col-md-4 mb-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex flex-column justify-content-between">
 
@@ -29,18 +30,17 @@
                         </p>
                     </div>
 
-                    <div>
-                        <a class="btn btn-dark w-100"
-                           href="{% url 'create_question' %}">
-                            Create New Poll Question
-                        </a>
-                    </div>
+                    <a class="btn btn-dark w-100"
+                       href="{% url 'create_question' %}">
+                        Create New Poll Question
+                    </a>
 
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <!-- QUIZZES -->
+        <div class="col-md-4 mb-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex flex-column justify-content-between">
 
@@ -54,12 +54,34 @@
                         </p>
                     </div>
 
+                    <a class="btn btn-dark w-100"
+                       href="{% url 'create_quiz' user.id %}">
+                        Create New Quiz
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- FLASHCARDS -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+
                     <div>
-                        <a class="btn btn-dark w-100"
-                           href="{% url 'create_quiz' user.id %}">
-                            Create New Quiz
-                        </a>
+                        <h4 class="card-title">
+                            Flash Cards
+                        </h4>
+
+                        <p class="text-muted">
+                            Create study sets students can flip through and self-assess.
+                        </p>
                     </div>
+
+                    <a class="btn btn-dark w-100"
+                       href="{% url 'create_flashcard_set' user.id %}">
+                        Create Flash Card Set
+                    </a>
 
                 </div>
             </div>
@@ -165,7 +187,10 @@
                                     {% endif %}
                                 </form>
 
-                                <a href="{% url 'delete_poll_question' q.id %}" class="btn btn-outline-danger btn-sm">Delete</a>
+                                <a href="{% url 'delete_poll_question' q.id %}"
+                                   class="btn btn-outline-danger btn-sm">
+                                    Delete
+                                </a>
 
                             </div>
 
@@ -265,6 +290,7 @@
 
         </div>
     </div>
+
     <!-- FLASH CARDS -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -275,10 +301,9 @@
                     Your Flash Card Sets
                 </h4>
 
-                <a class="btn btn-dark btn-sm"
-                   href="{% url 'create_flashcard_set' user.id %}">
-                    Create Flash Card Set
-                </a>
+                <span class="badge bg-secondary">
+                {{ flashcard_sets|length }} Total
+            </span>
 
             </div>
 
@@ -317,6 +342,11 @@
                                     Preview
                                 </a>
 
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'flashcard_results' f.id %}">
+                                    View Results
+                                </a>
+
                                 <form method="POST"
                                       action="{% url 'delete_flashcard_set' f.id %}"
                                       onsubmit="return confirm('Delete this flash card set?');">
@@ -346,4 +376,5 @@
 
         </div>
     </div>
+
 {% endblock %}

@@ -3,16 +3,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Upload Quiz or Flash Card Set</h1>
+    <h1>Upload Quiz or Flash Card Set</h1>
+    <div class="mb-4">
 
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <div class="mb-3">
-        {{ form.csv_file }}
+        <a class="btn btn-outline-secondary"
+           href="{% url 'download_quiz_csv_template' %}">
+
+            Download CSV Template
+
+        </a>
+
     </div>
-    <button class="btn btn-dark" type="submit">Upload</button>
-</form>
-<br>
-<a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            {{ form.csv_file }}
+        </div>
+        <button class="btn btn-dark" type="submit">Upload</button>
+    </form>
+    <br>
+    <a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
 {% endblock %}
 
