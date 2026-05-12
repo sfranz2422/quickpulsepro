@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="container mt-5">
+
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold">QuickPulse Pro</h1>
+            <p class="lead text-muted">
+                Classroom polling, quizzes, and flash cards in one place.
+            </p>
+        </div>
+
+        <div class="row justify-content-center g-4">
+
+            <!-- TEACHER CARD -->
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4 text-center">
+
+                        <h2 class="h4 mb-3">Teachers</h2>
+
+                        <p class="text-muted">
+                            Log in to create polling questions, quizzes, and flash card sets.
+                        </p>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <a href="{% url 'login' %}" class="btn btn-dark btn-lg">
+                                Teacher Login
+                            </a>
+
+                            <a href="{% url 'register_teacher' %}" class="btn btn-outline-secondary">
+                                Create Teacher Account
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT CARD -->
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4 text-center">
+
+                        <h2 class="h4 mb-3">Students</h2>
+
+                        <p class="text-muted">
+                            Enter your teacher code to answer the current polling question.
+                        </p>
+
+                        <form method="POST" action="{% url 'student_landing' %}" class="mt-4">
+                            {% csrf_token %}
+
+                            <div class="mb-3 text-start">
+                                <label for="teacher_id" class="form-label">
+                                    Teacher Code
+                                </label>
+
+                                <input type="number"
+                                       name="teacher_id"
+                                       id="teacher_id"
+                                       class="form-control form-control-lg"
+                                       placeholder="Enter teacher ID"
+                                       required>
+                            </div>
+
+                            <button type="submit" class="btn btn-dark btn-lg w-100">
+                                Join Poll
+                            </button>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+{% endblock %}

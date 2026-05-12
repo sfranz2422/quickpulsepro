@@ -800,3 +800,7 @@ def flashcard_results(request, set_id):
         "flashcard_set": flashcard_set,
         "results": results,
     })
+
+
+def home(request):
+    return render(request, "home.html")
