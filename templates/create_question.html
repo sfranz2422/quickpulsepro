@@ -1,41 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Create Question</h1>
+    <h1>Create Polling Question</h1>
 
-<form method="post">
-    {% csrf_token %}
+    <form method="post">
+        {% csrf_token %}
 
-    <div class="mb-3">
-        {{ form.question_text.label_tag }}
-        {{ form.question_text }}
-    </div>
+        <div class="mb-3">
+            {{ form.question_text.label_tag }}
+            {{ form.question_text }}
+        </div>
 
-    <div class="mb-3">
+        <div class="mb-3">
 
-        {{ form.option_a }}
-    </div>
+            {{ form.option_a }}
+        </div>
 
-    <div class="mb-3">
+        <div class="mb-3">
 
-        {{ form.option_b }}
-    </div>
+            {{ form.option_b }}
+        </div>
 
-    <div class="mb-3">
+        <div class="mb-3">
 
-        {{ form.option_c }}
-    </div>
+            {{ form.option_c }}
+        </div>
 
-    <div class="mb-3">
+        <div class="mb-3">
 
-        {{ form.option_d }}
-    </div>
+            {{ form.option_d }}
+        </div>
 
-    <button class="btn btn-success">
-        Create Question
-    </button>
-</form>
-<br>
+        <button class="btn btn-success">
+            Create Question
+        </button>
+    </form>
     <br>
-<a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
+    <br>
+    <a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
 {% endblock %}

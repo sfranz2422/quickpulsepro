@@ -1,50 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Question</h1>
-<br>
 
-{% if question %}
-    <h2>{{ question.question_text }}</h2>
+    <br>
 
-    <form method="post" action="{% url 'submit_response' teacher.id %}">
-        {% csrf_token %}
+    {% if question %}
+        <h1>{{ question.question_text }}</h1>
+        <br>
+        <form method="post" action="{% url 'submit_response' teacher.id %}">
+            {% csrf_token %}
 
-        <p>
-            <label>
-                <input type="radio" name="selected_option" value="A" required>
-                A. {{ question.option_a }}
-            </label>
-        </p>
-
-        <p>
-            <label>
-                <input type="radio" name="selected_option" value="B">
-                B. {{ question.option_b }}
-            </label>
-        </p>
-
-        {% if question.option_c %}
             <p>
                 <label>
-                    <input type="radio" name="selected_option" value="C">
-                    C. {{ question.option_c }}
+                    <input type="radio" name="selected_option" value="A" required>
+                    A. {{ question.option_a }}
                 </label>
             </p>
-        {% endif %}
 
-        {% if question.option_d %}
             <p>
                 <label>
-                    <input type="radio" name="selected_option" value="D">
-                    D. {{ question.option_d }}
+                    <input type="radio" name="selected_option" value="B">
+                    B. {{ question.option_b }}
                 </label>
             </p>
-        {% endif %}
 
-        <button type="submit" class="btn btn-outline-success">Submit Answer</button>
-    </form>
-{% else %}
-    <p>No active question right now.</p>
-{% endif %}
+            {% if question.option_c %}
+                <p>
+                    <label>
+                        <input type="radio" name="selected_option" value="C">
+                        C. {{ question.option_c }}
+                    </label>
+                </p>
+            {% endif %}
+
+            {% if question.option_d %}
+                <p>
+                    <label>
+                        <input type="radio" name="selected_option" value="D">
+                        D. {{ question.option_d }}
+                    </label>
+                </p>
+            {% endif %}
+
+            <button type="submit" class="btn btn-outline-success">Submit Answer</button>
+        </form>
+    {% else %}
+        <p>No active question right now.</p>
+    {% endif %}
 {% endblock %}
