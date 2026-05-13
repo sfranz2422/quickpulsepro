@@ -703,7 +703,9 @@ def start_flashcards(request, public_id):
         FlashCardSet,
         public_id=public_id
     )
+    mode = request.GET.get("mode", "front")  # default
 
+    request.session[f"flashcards_{flashcard_set.id}_mode"] = mode
     if not request.session.session_key:
         request.session.create()
 
@@ -725,9 +727,13 @@ def display_flashcards(request, public_id):
         FlashCardSet,
         public_id=public_id
     )
+    mode_key = f"flashcards_{flashcard_set.id}_mode"
 
+    if request.GET.get("mode") in ["front", "back"]:
+        request.session[mode_key] = request.GET.get("mode")
+
+    mode = request.session.get(mode_key, "front")
     cards = list(flashcard_set.cards.all().order_by("id"))
-
     if not cards:
         messages.warning(request, "This flash card set has no cards yet.")
         return redirect("dashboard")
@@ -772,6 +778,7 @@ def display_flashcards(request, public_id):
         "current_number": current_index + 1,
         "total_cards": len(cards),
         "progress_percent": progress_percent,
+        "mode": mode,
     })
 
 
