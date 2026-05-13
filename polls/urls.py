@@ -73,4 +73,9 @@ urlpatterns = [
         views.flashcard_results,
         name="flashcard_results"
     ),
+    path(
+        "flashcards/review/<uuid:public_id>/",
+        views.review_thumbed_down_flashcards,
+        name="review_thumbed_down_flashcards"
+    ),
 ]

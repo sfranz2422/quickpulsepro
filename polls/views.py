@@ -1,3 +1,4 @@
+import uuid
 from pydoc import describe
 
 from django.contrib.auth.models import User
@@ -703,6 +704,14 @@ def start_flashcards(request, public_id):
         public_id=public_id
     )
 
+    if not request.session.session_key:
+        request.session.create()
+
+    FlashCardResponse.objects.filter(
+        flashcard_set=flashcard_set,
+        session_key=request.session.session_key
+    ).delete()
+
     request.session[f"flashcards_{flashcard_set.id}_index"] = 0
 
     return redirect(
@@ -727,7 +736,8 @@ def display_flashcards(request, public_id):
 
     if session_key not in request.session:
         request.session[session_key] = 0
-
+    if not request.session.session_key:
+        request.session.create()
     current_index = request.session[session_key]
     progress_percent = round(((current_index + 1) / len(cards)) * 100)
     if request.method == "POST":
@@ -737,7 +747,8 @@ def display_flashcards(request, public_id):
             FlashCardResponse.objects.create(
                 flashcard_set=flashcard_set,
                 card=cards[current_index],
-                knew_it=(action == "thumbs_up")
+                knew_it=(action == "thumbs_up"),
+                session_key=request.session.session_key
             )
 
             request.session[session_key] += 1
@@ -830,3 +841,21 @@ def flashcard_results(request, set_id):
 
 def home(request):
     return render(request, "home.html")
+
+
+def review_thumbed_down_flashcards(request, public_id):
+    flashcard_set = get_object_or_404(
+        FlashCardSet,
+        public_id=public_id
+    )
+
+    thumbed_down_responses = FlashCardResponse.objects.filter(
+        flashcard_set=flashcard_set,
+        session_key=request.session.session_key,
+        knew_it=False
+    ).select_related("card")
+
+    return render(request, "review_thumbed_down_flashcards.html", {
+        "flashcard_set": flashcard_set,
+        "thumbed_down_responses": thumbed_down_responses,
+    })

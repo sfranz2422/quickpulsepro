@@ -2,37 +2,40 @@
 
 {% block content %}
 
-<div class="container mt-5">
+    <div class="container mt-5">
 
-    <div class="card shadow-sm text-center">
-        <div class="card-body p-5">
+        <div class="card shadow-sm text-center">
+            <div class="card-body p-5">
 
-            <h1 class="mb-3">Flash Card Set Complete</h1>
+                <h1 class="mb-3">Flash Card Set Complete</h1>
 
-            <p class="lead">
-                You finished reviewing:
-            </p>
+                <p class="lead">
+                    You finished reviewing:
+                </p>
 
-            <h3 class="mb-4">
-                {{ flashcard_set.title }}
-            </h3>
+                <h3 class="mb-4">
+                    {{ flashcard_set.title }}
+                </h3>
 
-            <p class="text-muted">
-                Total cards reviewed: {{ total }}
-            </p>
+                <p class="text-muted">
+                    Total cards reviewed: {{ total }}
+                </p>
 
-            <div class="d-flex justify-content-center gap-2 mt-4">
+                <div class="d-flex justify-content-center gap-2 mt-4">
 
-                <a href="{% url 'start_flashcards' flashcard_set.public_id %}"
-                   class="btn btn-primary">
-                    Review Again
-                </a>
+                    <a href="{% url 'start_flashcards' flashcard_set.public_id %}"
+                       class="btn btn-dark">
+                        Review All Cards Again
+                    </a>
+                    <a href="{% url 'review_thumbed_down_flashcards' flashcard_set.public_id %}"
+                       class="btn btn-warning">
+                        Review Cards I Need to Practice
+                    </a>
+                </div>
 
             </div>
-
         </div>
-    </div>
 
-</div>
+    </div>
 
 {% endblock %}

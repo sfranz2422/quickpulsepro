@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="container mt-4">
+
+        <div class="mb-4">
+            <h1>Review Cards</h1>
+            <p class="text-muted">{{ flashcard_set.title }}</p>
+        </div>
+
+        {% if thumbed_down_responses %}
+
+            {% for response in thumbed_down_responses %}
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+
+                        <h5>Card {{ forloop.counter }}</h5>
+
+                        <p class="fw-semibold">
+                            Front:
+                        </p>
+
+                        <p>
+                            {{ response.card.front }}
+                        </p>
+
+                        <p class="fw-semibold text-success">
+                            Back:
+                        </p>
+
+                        <p class="mb-0">
+                            {{ response.card.back }}
+                        </p>
+
+                    </div>
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="alert alert-success">
+                Nice work! You did not mark any cards for extra practice.
+            </div>
+
+        {% endif %}
+
+        <a href="{% url 'start_flashcards' flashcard_set.public_id %}"
+           class="btn btn-primary">
+            Restart Full Set
+        </a>
+
+    </div>
+
+{% endblock %}

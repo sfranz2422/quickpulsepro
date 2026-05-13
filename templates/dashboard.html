@@ -256,7 +256,9 @@
                             </div>
 
                             <div class="d-flex gap-2">
-
+                                <div class="text-muted small mt-1">
+                                    Total responses: {{ q.responses.count }}
+                                </div>
                                 <a class="btn btn-outline-primary btn-sm"
                                    href="{% url 'quiz_results' q.id %}">
                                     View Results
@@ -336,7 +338,9 @@
                             </div>
 
                             <div class="d-flex gap-2">
-
+                                <div class="text-muted small mt-1">
+                                    Total responses: {{ f.responses.count }}
+                                </div>
 
                                 <a class="btn btn-outline-primary btn-sm"
                                    href="{% url 'flashcard_results' f.id %}">

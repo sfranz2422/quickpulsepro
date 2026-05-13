@@ -146,6 +146,7 @@ class FlashCardResponse(models.Model):
     )
 
     knew_it = models.BooleanField()
+    session_key = models.CharField(max_length=40, blank=True)
 
     submitted_at = models.DateTimeField(auto_now_add=True)
 
