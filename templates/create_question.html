@@ -6,29 +6,73 @@
     <form method="post">
         {% csrf_token %}
 
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">
+                {{ form.question_type.label }}
+            </label>
+
+            <div class="d-flex gap-4">
+                {% for radio in form.question_type %}
+                    <div class="form-check">
+                        {{ radio.tag }}
+                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                            {{ radio.choice_label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-text">
+                Multiple choice students pick an option. Short answer students type a response.
+            </div>
+        </div>
+
         <div class="mb-3">
             {{ form.question_text.label_tag }}
             {{ form.question_text }}
+
+            {% for error in form.question_text.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
         </div>
 
-        <div class="mb-3">
+        <div id="multiple-choice-options">
 
-            {{ form.option_a }}
+            <div class="mb-3">
+                {{ form.option_a }}
+
+                {% for error in form.option_a.errors %}
+                    <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.option_b }}
+
+                {% for error in form.option_b.errors %}
+                    <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.option_c }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.option_d }}
+            </div>
+
         </div>
 
-        <div class="mb-3">
-
-            {{ form.option_b }}
-        </div>
-
-        <div class="mb-3">
-
-            {{ form.option_c }}
-        </div>
-
-        <div class="mb-3">
-
-            {{ form.option_d }}
+        <div id="short-answer-note" class="alert alert-secondary d-none">
+            Students will type their own answer. Matching answers are grouped
+            together on the results page.
         </div>
 
         <button class="btn btn-success">
@@ -38,4 +82,37 @@
     <br>
     <br>
     <a class="btn btn-dark" href="{% url 'dashboard' %}">Back to Dashboard</a>
+
+    <script>
+        (function () {
+            const typeInputs = document.querySelectorAll(
+                'input[name="question_type"]'
+            );
+
+            const optionsBlock = document.getElementById(
+                "multiple-choice-options"
+            );
+
+            const shortAnswerNote = document.getElementById(
+                "short-answer-note"
+            );
+
+            function syncQuestionType() {
+                const checked = document.querySelector(
+                    'input[name="question_type"]:checked'
+                );
+
+                const isShortAnswer = checked && checked.value === "SA";
+
+                optionsBlock.classList.toggle("d-none", isShortAnswer);
+                shortAnswerNote.classList.toggle("d-none", !isShortAnswer);
+            }
+
+            typeInputs.forEach(function (input) {
+                input.addEventListener("change", syncQuestionType);
+            });
+
+            syncQuestionType();
+        })();
+    </script>
 {% endblock %}

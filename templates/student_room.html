@@ -10,36 +10,50 @@
         <form method="post" action="{% url 'submit_response' teacher.id %}">
             {% csrf_token %}
 
-            <p>
-                <label>
-                    <input type="radio" name="selected_option" value="A" required>
-                    A. {{ question.option_a }}
-                </label>
-            </p>
+            {% if question.is_short_answer %}
 
-            <p>
-                <label>
-                    <input type="radio" name="selected_option" value="B">
-                    B. {{ question.option_b }}
-                </label>
-            </p>
+                <div class="mb-3">
+                    {{ short_answer_form.text_answer }}
 
-            {% if question.option_c %}
+                    {% for error in short_answer_form.text_answer.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+            {% else %}
+
                 <p>
                     <label>
-                        <input type="radio" name="selected_option" value="C">
-                        C. {{ question.option_c }}
+                        <input type="radio" name="selected_option" value="A" required>
+                        A. {{ question.option_a }}
                     </label>
                 </p>
-            {% endif %}
 
-            {% if question.option_d %}
                 <p>
                     <label>
-                        <input type="radio" name="selected_option" value="D">
-                        D. {{ question.option_d }}
+                        <input type="radio" name="selected_option" value="B">
+                        B. {{ question.option_b }}
                     </label>
                 </p>
+
+                {% if question.option_c %}
+                    <p>
+                        <label>
+                            <input type="radio" name="selected_option" value="C">
+                            C. {{ question.option_c }}
+                        </label>
+                    </p>
+                {% endif %}
+
+                {% if question.option_d %}
+                    <p>
+                        <label>
+                            <input type="radio" name="selected_option" value="D">
+                            D. {{ question.option_d }}
+                        </label>
+                    </p>
+                {% endif %}
+
             {% endif %}
 
             <button type="submit" class="btn btn-outline-success">Submit Answer</button>

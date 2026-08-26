@@ -4,19 +4,42 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+# Max characters a student may type into a short answer poll response.
+SHORT_ANSWER_MAX_LENGTH = 500
+
+
 class PollQuestion(models.Model):
+    MULTIPLE_CHOICE = "MC"
+    SHORT_ANSWER = "SA"
+
+    QUESTION_TYPE_CHOICES = [
+        (MULTIPLE_CHOICE, "Multiple Choice"),
+        (SHORT_ANSWER, "Short Answer"),
+    ]
+
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
 
     question_text = models.CharField(max_length=255)
 
-    option_a = models.CharField(max_length=100)
-    option_b = models.CharField(max_length=100)
+    question_type = models.CharField(
+        max_length=2,
+        choices=QUESTION_TYPE_CHOICES,
+        default=MULTIPLE_CHOICE
+    )
+
+    # Options are only used by multiple choice questions.
+    option_a = models.CharField(max_length=100, blank=True)
+    option_b = models.CharField(max_length=100, blank=True)
     option_c = models.CharField(max_length=100, blank=True)
     option_d = models.CharField(max_length=100, blank=True)
 
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_short_answer(self):
+        return self.question_type == self.SHORT_ANSWER
 
     def __str__(self):
         return self.question_text
@@ -89,12 +112,17 @@ class PollResponse(models.Model):
         related_name="responses"
     )
 
-    selected_option = models.CharField(max_length=1)
+    # Used by multiple choice questions.
+    selected_option = models.CharField(max_length=1, blank=True)
+
+    # Used by short answer questions.
+    text_answer = models.TextField(blank=True)
 
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.question.question_text} - {self.selected_option}"
+        answer = self.text_answer or self.selected_option
+        return f"{self.question.question_text} - {answer}"
 
 
 class FlashCardSet(models.Model):

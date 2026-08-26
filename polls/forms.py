@@ -2,6 +2,7 @@ from cProfile import label
 
 from django import forms
 from .models import PollQuestion, PollResponse, QuizQuestion, Quiz, FlashCardSet
+from .models import SHORT_ANSWER_MAX_LENGTH
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
@@ -11,6 +12,7 @@ class PollQuestionForm(forms.ModelForm):
         model = PollQuestion
 
         fields = [
+            "question_type",
             "question_text",
             "option_a",
             "option_b",
@@ -18,7 +20,16 @@ class PollQuestionForm(forms.ModelForm):
             "option_d",
         ]
 
+        labels = {
+            "question_type": "Question Type",
+            "question_text": "Question",
+        }
+
         widgets = {
+            "question_type": forms.RadioSelect(attrs={
+                "class": "form-check-input"
+            }),
+
             "question_text": forms.TextInput(attrs={
                 "class": "form-control",
                 "placeholder": "Enter question"
@@ -44,6 +55,59 @@ class PollQuestionForm(forms.ModelForm):
                 "placeholder": "Option D (optional)"
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Options A and B are only required for multiple choice questions,
+        # so requiredness is decided in clean() instead of on the field.
+        self.fields["option_a"].required = False
+        self.fields["option_b"].required = False
+
+        # Radio buttons should not offer a blank choice.
+        self.fields["question_type"].choices = PollQuestion.QUESTION_TYPE_CHOICES
+
+    def clean(self):
+        cleaned_data = super().clean()
+        question_type = cleaned_data.get("question_type")
+
+        option_fields = ["option_a", "option_b", "option_c", "option_d"]
+
+        if question_type == PollQuestion.SHORT_ANSWER:
+            # A short answer question has no options to store.
+            for field_name in option_fields:
+                cleaned_data[field_name] = ""
+
+        elif question_type == PollQuestion.MULTIPLE_CHOICE:
+            required_options = [
+                ("option_a", "Option A"),
+                ("option_b", "Option B"),
+            ]
+
+            for field_name, label in required_options:
+                if not (cleaned_data.get(field_name) or "").strip():
+                    self.add_error(
+                        field_name,
+                        f"{label} is required for a multiple choice question."
+                    )
+
+        return cleaned_data
+
+
+class ShortAnswerResponseForm(forms.Form):
+    text_answer = forms.CharField(
+        label="Your answer",
+        max_length=SHORT_ANSWER_MAX_LENGTH,
+        strip=True,
+        widget=forms.Textarea(attrs={
+            "class": "form-control",
+            "rows": 3,
+            "maxlength": SHORT_ANSWER_MAX_LENGTH,
+            "placeholder": "Type your answer",
+            "required": "true",
+        })
+    )
+
 
 class SelectTeacherForm(forms.Form):
     teacher_id = forms.IntegerField(

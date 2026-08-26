@@ -6,7 +6,7 @@ from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import PollQuestion, FlashCard, FlashCardSet
-from .forms import PollQuestionForm, CreateFlashCardSetForm
+from .forms import PollQuestionForm, CreateFlashCardSetForm, ShortAnswerResponseForm
 from .models import PollResponse
 from .forms import SelectTeacherForm
 from django.contrib import messages
@@ -103,7 +103,16 @@ def student_room(request, teacher_id):
         is_active=True
     ).order_by("-created_at").first()
 
-    return render(request, "student_room.html", {"teacher": teacher, "question": question})
+    short_answer_form = None
+
+    if question is not None and question.is_short_answer:
+        short_answer_form = ShortAnswerResponseForm()
+
+    return render(request, "student_room.html", {
+        "teacher": teacher,
+        "question": question,
+        "short_answer_form": short_answer_form,
+    })
 
 
 def submit_response(request, teacher_id):
@@ -129,6 +138,27 @@ def submit_response(request, teacher_id):
         )
 
     if request.method == "POST":
+
+        if question.is_short_answer:
+            form = ShortAnswerResponseForm(request.POST)
+
+            if form.is_valid():
+                PollResponse.objects.create(
+                    question=question,
+                    text_answer=form.cleaned_data["text_answer"]
+                )
+                request.session[session_key] = True
+                return render(request, "thank_you.html", {
+                    "teacher": teacher,
+                    "question": question
+                })
+
+            return render(request, "student_room.html", {
+                "teacher": teacher,
+                "question": question,
+                "short_answer_form": form,
+            })
+
         selected_option = request.POST.get("selected_option")
         if selected_option:
             PollResponse.objects.create(
@@ -151,30 +181,67 @@ def question_results(request, question_id):
 
     total_responses = question.responses.count()
 
-    options = [
-        ("A", question.option_a),
-        ("B", question.option_b),
-        ("C", question.option_c),
-        ("D", question.option_d),
-    ]
-
     results = []
 
-    for letter, text in options:
-        if text:
-            count = question.responses.filter(selected_option=letter).count()
+    if question.is_short_answer:
+        # Group identical answers together, ignoring case and surrounding
+        # whitespace, so the results read like the multiple choice tally.
+        grouped = {}
 
+        for response in question.responses.all():
+            answer = (response.text_answer or "").strip()
+
+            if not answer:
+                continue
+
+            key = answer.casefold()
+
+            if key in grouped:
+                grouped[key]["count"] += 1
+            else:
+                grouped[key] = {"text": answer, "count": 1}
+
+        ranked = sorted(
+            grouped.values(),
+            key=lambda row: (-row["count"], row["text"].casefold())
+        )
+
+        for row in ranked:
             if total_responses > 0:
-                percent = round((count / total_responses) * 100)
+                percent = round((row["count"] / total_responses) * 100)
             else:
                 percent = 0
 
             results.append({
-                "letter": letter,
-                "text": text,
-                "count": count,
+                "letter": "",
+                "text": row["text"],
+                "count": row["count"],
                 "percent": percent,
             })
+
+    else:
+        options = [
+            ("A", question.option_a),
+            ("B", question.option_b),
+            ("C", question.option_c),
+            ("D", question.option_d),
+        ]
+
+        for letter, text in options:
+            if text:
+                count = question.responses.filter(selected_option=letter).count()
+
+                if total_responses > 0:
+                    percent = round((count / total_responses) * 100)
+                else:
+                    percent = 0
+
+                results.append({
+                    "letter": letter,
+                    "text": text,
+                    "count": count,
+                    "percent": percent,
+                })
 
     return render(request, "results.html", {
         "question": question,

@@ -21,18 +21,24 @@
             {{ question.question_text }}
         </h3>
 
-        {% if question.is_active %}
-            <span class="badge bg-success mt-3">Active Question</span>
-        {% else %}
-            <span class="badge bg-secondary mt-3">Past Question</span>
-        {% endif %}
+        <div class="mt-3">
+            {% if question.is_active %}
+                <span class="badge bg-success">Active Question</span>
+            {% else %}
+                <span class="badge bg-secondary">Past Question</span>
+            {% endif %}
+
+            <span class="badge bg-dark">
+                {{ question.get_question_type_display }}
+            </span>
+        </div>
     </div>
 </div>
 
 <div class="card shadow-sm">
     <div class="card-body">
 
-        {% if total_responses == 0 %}
+        {% if total_responses == 0 or not results %}
             <p class="text-muted mb-0">No responses yet.</p>
         {% else %}
 
@@ -40,7 +46,7 @@
                 <div class="mb-4">
                     <div class="d-flex justify-content-between mb-1">
                         <strong>
-                            {{ row.letter }}. {{ row.text }}
+                            {% if row.letter %}{{ row.letter }}. {% endif %}{{ row.text }}
                         </strong>
 
                         <span>
