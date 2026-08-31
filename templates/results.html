@@ -23,15 +23,23 @@
 
         <div class="mt-3">
             {% if question.is_active %}
-                <span class="badge bg-success">Active Question</span>
+                <span class="badge bg-success">Showing in Room</span>
             {% else %}
-                <span class="badge bg-secondary">Past Question</span>
+                <span class="badge bg-secondary">Not in Room</span>
             {% endif %}
 
             <span class="badge bg-dark">
                 {{ question.get_question_type_display }}
             </span>
         </div>
+
+        <div class="text-muted small mt-3">
+            Permanent link (accepts answers whether or not it is showing in your room):
+        </div>
+
+        <a href="{% url 'poll_question_page' question.public_id %}">
+            https://quickpulsepro.onrender.com{% url 'poll_question_page' question.public_id %}
+        </a>
     </div>
 </div>
 

@@ -33,7 +33,15 @@ class PollQuestion(models.Model):
     option_c = models.CharField(max_length=100, blank=True)
     option_d = models.CharField(max_length=100, blank=True)
 
+    # Controls whether this question shows in the teacher's student room.
+    # The permanent per-question link works regardless of this flag.
     is_active = models.BooleanField(default=True)
+
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

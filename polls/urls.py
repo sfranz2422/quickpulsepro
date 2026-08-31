@@ -21,6 +21,17 @@ urlpatterns = [
         name="start_quiz"
     ),
     path("student/", views.student_landing, name="student_landing"),
+
+    path(
+        "poll/<uuid:public_id>/",
+        views.poll_question_page,
+        name="poll_question_page"
+    ),
+    path(
+        "poll/<uuid:public_id>/submit/",
+        views.submit_poll_answer,
+        name="submit_poll_answer"
+    ),
     path("register/", views.register_teacher, name="register_teacher"),
     path("delete_poll_question/<int:id>/teacher", views.delete_poll_question, name="delete_poll_question"),
     path("quiz_results/<int:quiz_id>/", views.quiz_results, name="quiz_results"),

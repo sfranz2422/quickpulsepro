@@ -99,6 +99,9 @@
 
             <p class="mb-2">
                 Give students your Teacher ID or send them directly to your polling room.
+                The room always shows whichever question you are currently showing.
+                Each question also has its own permanent link, listed below, which keeps
+                accepting answers even when it is not showing in the room.
             </p>
 
             <div class="mb-3">
@@ -155,17 +158,25 @@
 
                                 {% if q.is_active %}
                                     <span class="badge bg-success mt-2">
-                                    Active
+                                    Showing in Room
                                 </span>
                                 {% else %}
                                     <span class="badge bg-secondary mt-2">
-                                    Past
+                                    Not in Room
                                 </span>
                                 {% endif %}
 
                                 <span class="badge bg-dark mt-2">
                                     {{ q.get_question_type_display }}
                                 </span>
+
+                                <div class="text-muted small mt-2">
+                                    Permanent Question Link:
+                                </div>
+
+                                <a href="{% url 'poll_question_page' q.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'poll_question_page' q.public_id %}
+                                </a>
 
                             </div>
 
@@ -182,11 +193,11 @@
 
                                     {% if q.is_active %}
                                         <button type="submit" class="btn btn-outline-warning btn-sm">
-                                            Deactivate
+                                            Remove from Room
                                         </button>
                                     {% else %}
                                         <button type="submit" class="btn btn-outline-success btn-sm">
-                                            Make Active
+                                            Show in Room
                                         </button>
                                     {% endif %}
                                 </form>

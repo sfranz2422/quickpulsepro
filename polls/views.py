@@ -4,6 +4,7 @@ from pydoc import describe
 from django.contrib.auth.models import User
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from .models import PollQuestion, FlashCard, FlashCardSet
 from .forms import PollQuestionForm, CreateFlashCardSetForm, ShortAnswerResponseForm
@@ -43,6 +44,7 @@ def dashboard(request):
     })
 
 
+@login_required
 def delete_poll_question(request, id):
     question = get_object_or_404(
         PollQuestion,
@@ -94,30 +96,78 @@ def student_landing(request):
     return render(request, "student_landing.html", {"form": form})
 
 
-def student_room(request, teacher_id):
-    # SELECT * FROM auth_user WHERE id = teacher_id;
-    teacher = get_object_or_404(User, id=teacher_id)
+def _render_poll_question(request, question, submit_url, short_answer_form=None):
+    """
+    Renders one polling question for a student.
 
-    question = PollQuestion.objects.filter(
-        teacher=teacher,
-        is_active=True
-    ).order_by("-created_at").first()
-
-    short_answer_form = None
-
-    if question is not None and question.is_short_answer:
+    Shared by the teacher's student room and by the permanent
+    per-question link, which post to different submit URLs.
+    """
+    if question.is_short_answer and short_answer_form is None:
         short_answer_form = ShortAnswerResponseForm()
 
     return render(request, "student_room.html", {
-        "teacher": teacher,
+        "teacher": question.teacher,
         "question": question,
         "short_answer_form": short_answer_form,
+        "submit_url": submit_url,
     })
 
 
-def submit_response(request, teacher_id):
-    # SELECT * FROM auth_user WHERE id = teacher_id;
+def _record_poll_answer(request, question, page_url, submit_url):
+    """
+    Records one response to `question` from this browser session.
 
+    Both student entry points funnel through here so an answer is always
+    stored against the question the student was actually looking at.
+    """
+    session_key = f"answered_question_{question.id}"
+
+    if request.session.get(session_key):
+        messages.warning(request, "Question already answered.")
+        return redirect(page_url)
+
+    if request.method != "POST":
+        return redirect(page_url)
+
+    if question.is_short_answer:
+        form = ShortAnswerResponseForm(request.POST)
+
+        if not form.is_valid():
+            return _render_poll_question(
+                request,
+                question,
+                submit_url,
+                short_answer_form=form
+            )
+
+        PollResponse.objects.create(
+            question=question,
+            text_answer=form.cleaned_data["text_answer"]
+        )
+
+    else:
+        selected_option = request.POST.get("selected_option")
+
+        if not selected_option:
+            return redirect(page_url)
+
+        PollResponse.objects.create(
+            question=question,
+            selected_option=selected_option
+        )
+
+    request.session[session_key] = True
+
+    return render(request, "thank_you.html", {
+        "teacher": question.teacher,
+        "question": question,
+    })
+
+
+def student_room(request, teacher_id):
+    """The teacher's shared room URL: always shows their current question."""
+    # SELECT * FROM auth_user WHERE id = teacher_id;
     teacher = get_object_or_404(User, id=teacher_id)
 
     question = PollQuestion.objects.filter(
@@ -126,49 +176,66 @@ def submit_response(request, teacher_id):
     ).order_by("-created_at").first()
 
     if question is None:
-        return redirect("student_room", teacher_id=teacher_id)
+        return render(request, "student_room.html", {
+            "teacher": teacher,
+            "question": None,
+        })
 
-    session_key = f"answered_question_{question.id}"
-    if request.session.get(session_key):
-        messages.warning(request, "Question already answered.")
+    return _render_poll_question(
+        request,
+        question,
+        submit_url=reverse("submit_response", args=[teacher.id])
+    )
 
-        return redirect(
-            "student_room",
-            teacher_id=teacher.id
-        )
 
-    if request.method == "POST":
+def poll_question_page(request, public_id):
+    """
+    Permanent link to one specific question.
 
-        if question.is_short_answer:
-            form = ShortAnswerResponseForm(request.POST)
+    Deliberately ignores is_active, so a question that is no longer
+    showing in the room can still be answered from its own link.
+    """
+    question = get_object_or_404(PollQuestion, public_id=public_id)
 
-            if form.is_valid():
-                PollResponse.objects.create(
-                    question=question,
-                    text_answer=form.cleaned_data["text_answer"]
-                )
-                request.session[session_key] = True
-                return render(request, "thank_you.html", {
-                    "teacher": teacher,
-                    "question": question
-                })
+    return _render_poll_question(
+        request,
+        question,
+        submit_url=reverse("submit_poll_answer", args=[question.public_id])
+    )
 
-            return render(request, "student_room.html", {
-                "teacher": teacher,
-                "question": question,
-                "short_answer_form": form,
-            })
 
-        selected_option = request.POST.get("selected_option")
-        if selected_option:
-            PollResponse.objects.create(
-                question=question,
-                selected_option=selected_option
-            )
-            request.session[session_key] = True
-            return render(request, "thank_you.html", {"teacher": teacher, "question": question})
+def submit_poll_answer(request, public_id):
+    question = get_object_or_404(PollQuestion, public_id=public_id)
 
-    return redirect("student_room", teacher_id=teacher_id)
+    return _record_poll_answer(
+        request,
+        question,
+        page_url=reverse("poll_question_page", args=[question.public_id]),
+        submit_url=reverse("submit_poll_answer", args=[question.public_id])
+    )
+
+
+def submit_response(request, teacher_id):
+    """Submitting from the shared room always answers the room's question."""
+    # SELECT * FROM auth_user WHERE id = teacher_id;
+    teacher = get_object_or_404(User, id=teacher_id)
+
+    page_url = reverse("student_room", args=[teacher.id])
+
+    question = PollQuestion.objects.filter(
+        teacher=teacher,
+        is_active=True
+    ).order_by("-created_at").first()
+
+    if question is None:
+        return redirect(page_url)
+
+    return _record_poll_answer(
+        request,
+        question,
+        page_url=page_url,
+        submit_url=reverse("submit_response", args=[teacher.id])
+    )
 
 
 @login_required
@@ -671,16 +738,16 @@ def toggle_poll_question_active(request, question_id):
         if question.is_active:
             question.is_active = False
             question.save()
-            messages.success(request, "Question deactivated.")
+            messages.success(request, "Question removed from your student room.")
         else:
-            # Optional: only allow one active polling question per teacher
+            # Only one question shows in the room at a time.
             PollQuestion.objects.filter(
                 teacher=request.user
             ).update(is_active=False)
 
             question.is_active = True
             question.save()
-            messages.success(request, "Question activated.")
+            messages.success(request, "Question is now showing in your student room.")
 
     return redirect("dashboard")
 

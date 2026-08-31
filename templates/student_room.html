@@ -7,7 +7,7 @@
     {% if question %}
         <h1>{{ question.question_text }}</h1>
         <br>
-        <form method="post" action="{% url 'submit_response' teacher.id %}">
+        <form method="post" action="{{ submit_url }}">
             {% csrf_token %}
 
             {% if question.is_short_answer %}
