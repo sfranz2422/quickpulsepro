@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -150,12 +152,21 @@ class ShortAnswerPollTests(TestCase):
 
         self.assertContains(resp, "Recursion")
         self.assertContains(resp, "Short Answer")
-        self.assertNotContains(resp, "No responses yet")
+        self.assertContains(resp, 'data-key="recursion"')
+        self.assertTrue(self.empty_notice_hidden(resp))
 
     def test_results_page_for_short_answer_with_no_responses(self):
         q = self._short_answer_question()
         resp = self.client.get(reverse("question_results", args=[q.id]))
         self.assertContains(resp, "No responses yet")
+        self.assertFalse(self.empty_notice_hidden(resp))
+
+    @staticmethod
+    def empty_notice_hidden(response):
+        """The 'No responses yet' notice is always rendered, toggled by `hidden`."""
+        html = response.content.decode()
+        tag = re.search(r'<p id="results-empty".*?>', html, re.S).group(0)
+        return "hidden" in tag
 
     def test_multiple_choice_results_unchanged(self):
         q = PollQuestion.objects.create(

@@ -12,6 +12,11 @@ urlpatterns = [
 
     path("questions/create/", views.create_question, name="create_question"),
     path("questions/<int:question_id>/results/", views.question_results, name="question_results"),
+    path(
+        "questions/<int:question_id>/results/data/",
+        views.question_results_data,
+        name="question_results_data"
+    ),
 
     path("student/<int:teacher_id>/", views.student_room, name="student_room"),
     path("student/<int:teacher_id>/submit/", views.submit_response, name="submit_response"),

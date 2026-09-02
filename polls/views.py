@@ -23,7 +23,7 @@ from polls.forms import CSVUploadForm
 from polls.forms import CreateQuizForm
 from .models import QuizResponse
 import csv
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from .models import FlashCardResponse
 import random
 
@@ -238,14 +238,14 @@ def submit_response(request, teacher_id):
     )
 
 
-@login_required
-def question_results(request, question_id):
-    question = get_object_or_404(
-        PollQuestion,
-        id=question_id,
-        teacher=request.user
-    )
+def _build_question_results(question):
+    """
+    Tallies one polling question.
 
+    Returns (rows, total_responses). Each row carries a stable `key` so the
+    live results page can match a row to the element already on screen
+    instead of redrawing the whole list.
+    """
     total_responses = question.responses.count()
 
     results = []
@@ -266,7 +266,7 @@ def question_results(request, question_id):
             if key in grouped:
                 grouped[key]["count"] += 1
             else:
-                grouped[key] = {"text": answer, "count": 1}
+                grouped[key] = {"key": key, "text": answer, "count": 1}
 
         ranked = sorted(
             grouped.values(),
@@ -280,6 +280,7 @@ def question_results(request, question_id):
                 percent = 0
 
             results.append({
+                "key": row["key"],
                 "letter": "",
                 "text": row["text"],
                 "count": row["count"],
@@ -304,16 +305,47 @@ def question_results(request, question_id):
                     percent = 0
 
                 results.append({
+                    "key": letter,
                     "letter": letter,
                     "text": text,
                     "count": count,
                     "percent": percent,
                 })
 
+    return results, total_responses
+
+
+@login_required
+def question_results(request, question_id):
+    question = get_object_or_404(
+        PollQuestion,
+        id=question_id,
+        teacher=request.user
+    )
+
+    results, total_responses = _build_question_results(question)
+
     return render(request, "results.html", {
         "question": question,
         "results": results,
         "total_responses": total_responses,
+    })
+
+
+@login_required
+def question_results_data(request, question_id):
+    """JSON feed the results page polls so it can update without reloading."""
+    question = get_object_or_404(
+        PollQuestion,
+        id=question_id,
+        teacher=request.user
+    )
+
+    results, total_responses = _build_question_results(question)
+
+    return JsonResponse({
+        "total_responses": total_responses,
+        "results": results,
     })
 
 
