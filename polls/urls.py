@@ -52,6 +52,11 @@ urlpatterns = [
         name="toggle_poll_question_active"
     ),
     path(
+        "poll_question/<int:question_id>/clear/",
+        views.clear_poll_responses,
+        name="clear_poll_responses"
+    ),
+    path(
         "flashcards/create/<int:teacher_id>/",
         views.create_flashcard_set,
         name="create_flashcard_set"

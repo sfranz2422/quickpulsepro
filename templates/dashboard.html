@@ -170,6 +170,10 @@
                                     {{ q.get_question_type_display }}
                                 </span>
 
+                                <div class="text-muted small mt-1">
+                                    Total responses: {{ q.response_count }}
+                                </div>
+
                                 <div class="text-muted small mt-2">
                                     Permanent Question Link:
                                 </div>
@@ -200,6 +204,18 @@
                                             Show in Room
                                         </button>
                                     {% endif %}
+                                </form>
+
+                                <form method="POST"
+                                      action="{% url 'clear_poll_responses' q.id %}"
+                                      onsubmit="return confirm('Clear all {{ q.response_count }} response{{ q.response_count|pluralize }} for this question? This cannot be undone.');">
+                                    {% csrf_token %}
+
+                                    <button type="submit"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            {% if not q.response_count %}disabled{% endif %}>
+                                        Clear Responses
+                                    </button>
                                 </form>
 
                                 <a href="{% url 'delete_poll_question' q.id %}"

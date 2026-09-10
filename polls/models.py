@@ -43,11 +43,24 @@ class PollQuestion(models.Model):
         editable=False
     )
 
+    # Bumped each time the teacher clears this question's responses, which
+    # invalidates the "already answered" flag stored in student browsers.
+    answer_round = models.PositiveIntegerField(default=1)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
     def is_short_answer(self):
         return self.question_type == self.SHORT_ANSWER
+
+    def answer_session_key(self):
+        """Session flag marking that this browser already answered."""
+        # Round 1 keeps the original key so deploying this change does not
+        # unlock students who answered before it shipped.
+        if self.answer_round <= 1:
+            return f"answered_question_{self.id}"
+
+        return f"answered_question_{self.id}_round_{self.answer_round}"
 
     def __str__(self):
         return self.question_text

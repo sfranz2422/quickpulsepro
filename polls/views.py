@@ -32,6 +32,8 @@ import random
 def dashboard(request):
     questions = PollQuestion.objects.filter(
         teacher=request.user
+    ).annotate(
+        response_count=Count("responses")
     ).order_by("-created_at")
     quizs = Quiz.objects.filter(
         teacher=request.user
@@ -121,7 +123,7 @@ def _record_poll_answer(request, question, page_url, submit_url):
     Both student entry points funnel through here so an answer is always
     stored against the question the student was actually looking at.
     """
-    session_key = f"answered_question_{question.id}"
+    session_key = question.answer_session_key()
 
     if request.session.get(session_key):
         messages.warning(request, "Question already answered.")
@@ -780,6 +782,35 @@ def toggle_poll_question_active(request, question_id):
             question.is_active = True
             question.save()
             messages.success(request, "Question is now showing in your student room.")
+
+    return redirect("dashboard")
+
+
+@login_required
+def clear_poll_responses(request, question_id):
+    """Wipes one question's responses and lets everyone answer it again."""
+    question = get_object_or_404(
+        PollQuestion,
+        id=question_id,
+        teacher=request.user
+    )
+
+    if request.method == "POST":
+        deleted_count, _ = question.responses.all().delete()
+
+        # Invalidate the "already answered" flag sitting in student browsers.
+        question.answer_round += 1
+        question.save(update_fields=["answer_round"])
+
+        if deleted_count:
+            messages.success(
+                request,
+                f"Cleared {deleted_count} "
+                f"response{'' if deleted_count == 1 else 's'}. "
+                f"Students can answer this question again."
+            )
+        else:
+            messages.info(request, "That question had no responses to clear.")
 
     return redirect("dashboard")
 
