@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load markdown_tags %}
+
+{% block extra_css %}{% include "assessments/_markdown_assets.html" %}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="mb-1">{{ test.title }}</h1>
+        <p class="text-muted mb-0">
+            {{ questions|length }} question{{ questions|length|pluralize }} ·
+            {{ test.total_points }} point{{ test.total_points|pluralize }} ·
+            {{ attempt_count }} student attempt{{ attempt_count|pluralize }}
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'test_results' test.id %}">
+            Results
+        </a>
+        <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- OPEN / CLOSED -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+        <div>
+            {% if test.is_open %}
+                <span class="badge bg-success">Open</span>
+                <div class="text-muted small mt-2">Student link:</div>
+                <a href="{% url 'take_test' test.public_id %}">
+                    https://quickpulsepro.onrender.com{% url 'take_test' test.public_id %}
+                </a>
+            {% else %}
+                <span class="badge bg-secondary">Closed</span>
+                <div class="text-muted small mt-2">
+                    Students can't start or submit while the test is closed.
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{% url 'toggle_test_open' test.id %}">
+            {% csrf_token %}
+            {% if test.is_open %}
+                <button class="btn btn-outline-warning">Close Test</button>
+            {% else %}
+                <button class="btn btn-success">Open Test</button>
+            {% endif %}
+        </form>
+
+    </div>
+</div>
+
+<!-- ADD ONE QUESTION -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h4 class="card-title mb-3">Add a Question</h4>
+
+        <form method="post" action="{% url 'add_test_question' test.id %}">
+            {% csrf_token %}
+
+            <div class="mb-3 d-flex gap-4">
+                {% for radio in question_form.question_type %}
+                    <div class="form-check">
+                        {{ radio.tag }}
+                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                            {{ radio.choice_label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ question_form.prompt.label_tag }}
+                {{ question_form.prompt }}
+                {% for error in question_form.prompt.errors %}
+                    <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div id="mc-fields">
+                <div class="row">
+                    {% for field in question_form %}
+                        {% if field.name == "option_a" or field.name == "option_b" or field.name == "option_c" or field.name == "option_d" %}
+                            <div class="col-md-6 mb-3">
+                                {{ field }}
+                                {% for error in field.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3" style="max-width: 220px;">
+                    {{ question_form.correct_option.label_tag }}
+                    {{ question_form.correct_option }}
+                    {% for error in question_form.correct_option.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="sa-note" class="alert alert-secondary d-none">
+                Short answer questions are graded by hand after students submit.
+            </div>
+
+            <div class="mb-3" style="max-width: 160px;">
+                {{ question_form.points.label_tag }}
+                {{ question_form.points }}
+                {% for error in question_form.points.errors %}
+                    <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <button class="btn btn-success">Add Question</button>
+        </form>
+
+    </div>
+</div>
+
+<!-- CSV UPLOAD -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h4 class="card-title">Or Upload a CSV</h4>
+
+        <p class="text-muted">
+            Accepts the test template below, and also the column names your
+            quiz CSVs already use.
+        </p>
+
+        <form method="post"
+              action="{% url 'upload_test_csv' test.id %}"
+              enctype="multipart/form-data"
+              class="d-flex gap-2 flex-wrap align-items-start">
+            {% csrf_token %}
+            {{ csv_form.csv_file }}
+            <button class="btn btn-dark">Upload</button>
+        </form>
+
+        <a class="btn btn-link px-0 mt-2"
+           href="{% url 'download_test_csv_template' %}">
+            Download CSV template
+        </a>
+
+    </div>
+</div>
+
+<!-- QUESTIONS -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h4 class="card-title mb-3">Questions</h4>
+
+        {% if questions %}
+            <div class="list-group">
+                {% for question in questions %}
+                    <div class="list-group-item">
+
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div class="flex-grow-1">
+                                <div class="text-muted small mb-1">
+                                    Question {{ question.order }} ·
+                                    {{ question.get_question_type_display }} ·
+                                    {{ question.points }} point{{ question.points|pluralize }}
+                                </div>
+
+                                <div class="markdown-body">
+                                    {{ question.prompt|markdown }}
+                                </div>
+
+                                {% if not question.is_short_answer %}
+                                    <ul class="mt-2 mb-0 small">
+                                        {% for letter, text in question.options %}
+                                            <li>
+                                                {{ letter }}. {{ text }}
+                                                {% if letter == question.correct_option %}
+                                                    <span class="badge bg-success">correct</span>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+
+                            <form method="POST"
+                                  action="{% url 'delete_test_question' question.id %}"
+                                  onsubmit="return confirm('Delete this question? Any answers to it are deleted too.');">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">No questions yet.</p>
+        {% endif %}
+
+    </div>
+</div>
+
+<form method="POST"
+      action="{% url 'delete_test' test.id %}"
+      onsubmit="return confirm('Delete this test, its questions and every student answer? This cannot be undone.');">
+    {% csrf_token %}
+    <button class="btn btn-danger mb-4">Delete Test</button>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+{% include "assessments/_markdown_scripts.html" %}
+<script>
+    (function () {
+        var mcFields = document.getElementById("mc-fields");
+        var saNote = document.getElementById("sa-note");
+
+        function sync() {
+            var checked = document.querySelector('input[name="question_type"]:checked');
+            var isShortAnswer = checked && checked.value === "SA";
+            mcFields.classList.toggle("d-none", isShortAnswer);
+            saNote.classList.toggle("d-none", !isShortAnswer);
+        }
+
+        document.querySelectorAll('input[name="question_type"]').forEach(function (input) {
+            input.addEventListener("change", sync);
+        });
+
+        sync();
+    })();
+</script>
+{% endblock %}

@@ -5,7 +5,11 @@ session helpers. Keeping the two apart means a student signing in can
 never reach the teacher side of the app.
 """
 
-from django.shortcuts import resolve_url
+from functools import wraps
+from urllib.parse import quote
+
+from django.shortcuts import redirect, resolve_url
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import Student
@@ -57,3 +61,17 @@ def safe_next_url(request, default="home"):
         return candidate
 
     return resolve_url(default)
+
+
+def student_required(view):
+    """Sends anyone without a student session to sign in first, then back."""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if get_current_student(request) is None:
+            destination = quote(request.get_full_path())
+            return redirect(f"{reverse('student_sign_in')}?next={destination}")
+
+        return view(request, *args, **kwargs)
+
+    return wrapper

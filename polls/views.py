@@ -51,8 +51,11 @@ def dashboard(request):
     flashcard_sets = FlashCardSet.objects.filter(
         teacher=request.user
     ).order_by("-created_at")
+    tests = request.user.tests.all()
+
     return render(request, "dashboard.html", {
         "questions": questions, "quizs": quizs, "flashcard_sets": flashcard_sets,
+        "tests": tests,
     })
 
 

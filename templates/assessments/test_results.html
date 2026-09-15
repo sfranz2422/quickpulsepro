@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="mb-1">{{ test.title }} — Results</h1>
+        <p class="text-muted mb-0">
+            {{ submitted_count }} submitted of {{ rows|length }} started ·
+            {{ total_points }} point{{ total_points|pluralize }} possible
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-dark" href="{% url 'export_test_scores' test.id %}">
+            Export CSV
+        </a>
+        <a class="btn btn-outline-secondary" href="{% url 'edit_test' test.id %}">
+            Edit Test
+        </a>
+    </div>
+</div>
+
+{% if questions_needing_grading %}
+    <div class="card shadow-sm mb-4 border-warning">
+        <div class="card-body">
+            <h4 class="card-title">Waiting on you</h4>
+            <p class="text-muted">
+                These short answer questions have submitted answers that aren't graded yet.
+            </p>
+
+            <div class="d-flex flex-column gap-2">
+                {% for question in questions_needing_grading %}
+                    <a class="btn btn-warning"
+                       href="{% url 'grade_test_question' question.id %}">
+                        Grade question {{ question.order }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        {% if rows %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th class="text-end">Score</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td>
+                                    <strong>{{ row.attempt.student.display_name }}</strong>
+                                    <div class="text-muted small">
+                                        {{ row.attempt.student.email }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if row.attempt.status_label == "Graded" %}
+                                        <span class="badge bg-success">Graded</span>
+                                    {% elif row.attempt.status_label == "Awaiting grading" %}
+                                        <span class="badge bg-warning text-dark">Awaiting grading</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">In progress</span>
+                                    {% endif %}
+
+                                    {% if row.attempt.reopened_count %}
+                                        <span class="badge bg-light text-dark">
+                                            reopened ×{{ row.attempt.reopened_count }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="small text-muted">
+                                    {% if row.attempt.submitted_at %}
+                                        {{ row.attempt.submitted_at|date:"M d, g:i A" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {{ row.earned }} / {{ total_points }}
+                                    <div class="text-muted small">{{ row.percent }}%</div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a class="btn btn-outline-primary btn-sm"
+                                           href="{% url 'attempt_detail' row.attempt.id %}">
+                                            View answers
+                                        </a>
+
+                                        {% if row.attempt.is_submitted %}
+                                            <form method="POST"
+                                                  action="{% url 'reopen_attempt' row.attempt.id %}"
+                                                  onsubmit="return confirm('Reopen this test for {{ row.attempt.student.display_name|escapejs }}? Their answers are kept and they can change them.');">
+                                                {% csrf_token %}
+                                                <button class="btn btn-outline-warning btn-sm">
+                                                    Reopen
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">No students have started this test yet.</p>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

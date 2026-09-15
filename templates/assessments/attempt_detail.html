@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load markdown_tags %}
+
+{% block extra_css %}{% include "assessments/_markdown_assets.html" %}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="mb-1">{{ attempt.student.display_name }}</h1>
+        <p class="text-muted mb-0">
+            {{ test.title }} · {{ attempt.status_label }} ·
+            {{ attempt.earned_points }} / {{ total_points }}
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary" href="{% url 'test_results' test.id %}">
+        Back to Results
+    </a>
+</div>
+
+{% for row in rows %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+
+            <div class="text-muted small mb-2">
+                Question {{ forloop.counter }} ·
+                {{ row.question.get_question_type_display }} ·
+                {{ row.question.points }} point{{ row.question.points|pluralize }}
+            </div>
+
+            <div class="markdown-body mb-3">
+                {{ row.question.prompt|markdown }}
+            </div>
+
+            {% if row.answer and not row.answer.is_blank %}
+
+                {% if row.question.is_short_answer %}
+                    <div class="border rounded p-3 bg-light">
+                        <pre class="mb-0" style="white-space: pre-wrap;">{{ row.answer.text_answer }}</pre>
+                    </div>
+                {% else %}
+                    <p class="mb-1">
+                        Answered <strong>{{ row.answer.selected_option }}</strong>
+                        {% if row.answer.is_correct_choice %}
+                            <span class="badge bg-success">correct</span>
+                        {% else %}
+                            <span class="badge bg-danger">incorrect</span>
+                            <span class="text-muted small">
+                                (correct answer: {{ row.question.correct_option }})
+                            </span>
+                        {% endif %}
+                    </p>
+                {% endif %}
+
+            {% else %}
+                <p class="text-muted fst-italic mb-1">No answer given.</p>
+            {% endif %}
+
+            <div class="mt-3">
+                {% if row.answer and row.answer.points_awarded is not None %}
+                    <span class="badge bg-dark">
+                        {{ row.answer.points_awarded }} / {{ row.question.points }}
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning text-dark">Not graded</span>
+                    {% if row.question.is_short_answer %}
+                        <a class="btn btn-link btn-sm"
+                           href="{% url 'grade_test_question' row.question.id %}">
+                            Grade this question
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}{% include "assessments/_markdown_scripts.html" %}{% endblock %}

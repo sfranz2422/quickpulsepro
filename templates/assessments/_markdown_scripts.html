@@ -1,0 +1,43 @@
+<script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
+<script>
+    // Syntax highlight anything already rendered on the page.
+    document.querySelectorAll(".markdown-body pre code").forEach(function (block) {
+        window.hljs && hljs.highlightElement(block);
+    });
+
+    // Turn every markdown textarea into an editor with a toolbar.
+    document.querySelectorAll("textarea.markdown-editor").forEach(function (area) {
+        var editor = new EasyMDE({
+            element: area,
+            spellChecker: false,
+            status: false,
+            autoDownloadFontAwesome: true,
+            toolbar: [
+                "bold", "italic", "heading", "|",
+                "code", "quote", "unordered-list", "ordered-list", "|",
+                "link", "preview", "guide",
+            ],
+            previewRender: function (plainText, preview) {
+                // EasyMDE's own preview, then highlight any code in it.
+                var html = this.parent.markdown(plainText);
+                preview.innerHTML = html;
+                preview.classList.add("markdown-body");
+                preview.querySelectorAll("pre code").forEach(function (block) {
+                    window.hljs && hljs.highlightElement(block);
+                });
+                return preview.innerHTML;
+            },
+        });
+
+        // Make sure the textarea carries the text when the form posts.
+        var form = area.closest("form");
+
+        if (form) {
+            form.addEventListener("submit", function () {
+                area.value = editor.value();
+            });
+        }
+    });
+</script>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm" style="max-width: 620px;">
+    <div class="card-body">
+
+        <h1 class="h3 mb-3">{{ test.title }}</h1>
+
+        <p><strong>Your test has been submitted.</strong></p>
+
+        <p class="text-muted">
+            Submitted {{ attempt.submitted_at|date:"M d, Y g:i A" }} by
+            {{ attempt.student.display_name }}.
+        </p>
+
+        {% if attempt.needs_grading %}
+            <div class="alert alert-secondary mb-0">
+                Some questions need to be graded by your teacher, so your score
+                isn't final yet.
+            </div>
+        {% else %}
+            <p class="mb-0">
+                Score: <strong>{{ attempt.earned_points }}</strong>
+                out of {{ test.total_points }}
+            </p>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

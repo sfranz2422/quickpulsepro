@@ -27,5 +27,6 @@ urlpatterns = [
          name="login"),
     path("logout/", auth_views.LogoutView.as_view(template_name='logout.html'), name="logout"),
 
+    path("", include("assessments.urls")),
     path("", include("polls.urls")),
 ]

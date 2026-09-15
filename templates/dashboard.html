@@ -63,6 +63,30 @@
             </div>
         </div>
 
+        <!-- TESTS -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+
+                    <div>
+                        <h4 class="card-title">
+                            Tests
+                        </h4>
+
+                        <p class="text-muted">
+                            Graded assessments. Students sign in, and every answer
+                            is recorded against their name.
+                        </p>
+                    </div>
+
+                    <a class="btn btn-dark w-100" href="{% url 'create_test' %}">
+                        Create New Test
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
         <!-- FLASHCARDS -->
         <div class="col-md-4 mb-3">
             <div class="card shadow-sm h-100">
@@ -319,6 +343,68 @@
                     No quizzes created yet.
                 </p>
 
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- TESTS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="card-title mb-0">Your Tests</h4>
+                <span class="badge bg-secondary">{{ tests|length }} Total</span>
+            </div>
+
+            {% if tests %}
+                <div class="list-group">
+                    {% for t in tests %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                            <div>
+                                <strong>{{ t.title }}</strong>
+
+                                {% if t.is_open %}
+                                    <span class="badge bg-success">Open</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Closed</span>
+                                {% endif %}
+
+                                <div class="text-muted small mt-1">
+                                    Created: {{ t.created_at|date:"M d, Y g:i A" }}
+                                </div>
+
+                                <div class="text-muted small mt-2">
+                                    Student Test Link:
+                                </div>
+
+                                <a href="{% url 'take_test' t.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'take_test' t.public_id %}
+                                </a>
+                            </div>
+
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="text-muted small">
+                                    {{ t.attempts.count }} attempt{{ t.attempts.count|pluralize }}
+                                </div>
+
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'test_results' t.id %}">
+                                    Results
+                                </a>
+
+                                <a class="btn btn-outline-secondary btn-sm"
+                                   href="{% url 'edit_test' t.id %}">
+                                    Edit
+                                </a>
+                            </div>
+
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">No tests created yet.</p>
             {% endif %}
 
         </div>

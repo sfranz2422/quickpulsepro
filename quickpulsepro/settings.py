@@ -38,6 +38,7 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
 
 INSTALLED_APPS = [
     'polls',
+    'assessments',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
