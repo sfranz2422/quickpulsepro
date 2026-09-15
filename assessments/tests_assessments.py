@@ -134,6 +134,24 @@ class AuthoringTests(AssessmentTestCase):
         self.assertEqual([q.order for q in remaining], [1])
         self.assertEqual(remaining[0], self.sa)
 
+    def test_an_empty_prompt_is_caught_on_the_server(self):
+        """The markdown editor hides the textarea, so `required` can't be relied
+        on in the browser. The server has to be the one that says no."""
+        resp = self.client.post(reverse("add_test_question", args=[self.test.id]), {
+            "question_type": "MC", "prompt": "",
+            "option_a": "3", "option_b": "4", "option_c": "", "option_d": "",
+            "correct_option": "A", "points": 1})
+        self.assertContains(resp, "This field is required")
+        self.assertEqual(self.test.questions.count(), 2)
+
+    def test_editor_script_drops_the_required_attribute(self):
+        """A hidden field carrying `required` makes browsers silently refuse to
+        submit the form, which is what broke the Add Question button."""
+        html = self.client.get(
+            reverse("edit_test", args=[self.test.id])).content.decode()
+        self.assertIn('area.removeAttribute("required")', html)
+        self.assertIn('typeof EasyMDE === "undefined"', html)
+
     def test_markdown_prompt_is_rendered_not_escaped_on_the_editor(self):
         self.mc.prompt = "```python\nprint(1)\n```"
         self.mc.save()

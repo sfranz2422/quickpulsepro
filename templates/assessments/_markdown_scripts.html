@@ -9,6 +9,18 @@
 
     // Turn every markdown textarea into an editor with a toolbar.
     document.querySelectorAll("textarea.markdown-editor").forEach(function (area) {
+        // If the CDN is unreachable, leave the plain textarea alone: it still
+        // works, it just has no toolbar.
+        if (typeof EasyMDE === "undefined") {
+            return;
+        }
+
+        // EasyMDE hides the original textarea. A hidden field carrying
+        // `required` makes the browser refuse to submit the form and give no
+        // visible reason, so validation moves to the server, which still
+        // requires this field and renders the error next to it.
+        area.removeAttribute("required");
+
         var editor = new EasyMDE({
             element: area,
             spellChecker: false,
