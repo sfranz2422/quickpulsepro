@@ -121,9 +121,9 @@ class PermanentQuestionLinkTests(TestCase):
 
     # ---------- teacher-facing labels ----------
 
-    def test_dashboard_shows_room_wording_and_permanent_links(self):
+    def test_polling_page_shows_room_wording_and_permanent_links(self):
         self.client.force_login(self.teacher)
-        html = self.client.get(reverse("dashboard")).content.decode()
+        html = self.client.get(reverse("polling_home")).content.decode()
         self.assertIn("Showing in Room", html)
         self.assertIn("Not in Room", html)
         self.assertIn("Remove from Room", html)

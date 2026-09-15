@@ -185,13 +185,13 @@ class ShortAnswerPollTests(TestCase):
         self.assertEqual(rows[0]["percent"], 67)
         self.assertContains(resp, "A. Yes")
 
-    def test_dashboard_lists_both_question_types(self):
+    def test_polling_page_lists_both_question_types(self):
         PollQuestion.objects.create(
             teacher=self.teacher, question_text="SA one", question_type="SA")
         PollQuestion.objects.create(
             teacher=self.teacher, question_text="MC one", question_type="MC",
             option_a="a", option_b="b")
 
-        resp = self.client.get(reverse("dashboard"))
+        resp = self.client.get(reverse("polling_home"))
         self.assertContains(resp, "Short Answer")
         self.assertContains(resp, "Multiple Choice")

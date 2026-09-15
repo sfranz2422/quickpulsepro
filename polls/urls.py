@@ -5,6 +5,10 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("dashboard/", views.dashboard, name="dashboard"),
 
+    path("polling/", views.polling_home, name="polling_home"),
+    path("quizzes/", views.quizzes_home, name="quizzes_home"),
+    path("flashcards/", views.flashcards_home, name="flashcards_home"),
+
     path("create_quiz/<int:teacher_id>", views.create_quiz, name="create_quiz"),
     path("upload_csv/<int:QuizID>/", views.upload_csv, name="upload_csv"),
 

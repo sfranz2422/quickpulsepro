@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="mb-1">Quizzes</h1>
+            <p class="text-muted mb-0">Self-paced practice. Anonymous, retakeable, and not graded — for review, not for marks.</p>
+        </div>
+
+        <a class="btn btn-dark" href="{% url 'create_quiz' user.id %}">Create New Quiz</a>
+    </div>
+
+    <!-- QUIZZES -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h4 class="card-title mb-0">
+                    Your Quizzes
+                </h4>
+
+                <span class="badge bg-secondary">
+                {{ quizs|length }} Total
+            </span>
+
+            </div>
+
+            {% if quizs %}
+
+                <div class="list-group">
+
+                    {% for q in quizs %}
+
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <strong>
+                                    {{ q.title }}
+                                </strong>
+
+                                <div class="text-muted small mt-1">
+                                    Created: {{ q.created_at|date:"M d, Y g:i A" }}
+                                </div>
+
+                                <div class="text-muted small mt-2">
+                                    Student Quiz Link:
+                                </div>
+
+                                <a href="{% url 'start_quiz' q.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'start_quiz' q.public_id %}
+                                </a>
+
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <div class="text-muted small mt-1">
+                                    Total responses: {{ q.responses.count }}
+                                </div>
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'quiz_results' q.id %}">
+                                    View Results
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'delete_quiz' q.id %}"
+                                      onsubmit="return confirm('Delete this quiz? This will also delete its questions and responses.');">
+                                    {% csrf_token %}
+
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    No quizzes created yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+{% endblock %}

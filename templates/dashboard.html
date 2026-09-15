@@ -2,496 +2,160 @@
 
 {% block content %}
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <div>
-            <h1 class="mb-1">Teacher Dashboard</h1>
-
-            <p class="text-muted mb-0">
-                Logged in as {{ user.username }}
-            </p>
+            <h1 class="mb-1">Dashboard</h1>
+            <p class="text-muted mb-0">Logged in as {{ user.username }}</p>
         </div>
+
+        <span class="badge bg-dark fs-6">Teacher ID: {{ user.id }}</span>
     </div>
 
-    <!-- ACTION BUTTONS -->
-    <div class="row mb-4">
+    <!-- WAITING ON YOU -->
+    {% if needs_grading or open_tests or active_question %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
 
-        <!-- POLLING -->
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
+                <h4 class="card-title mb-3">Waiting on you</h4>
 
-                    <div>
-                        <h4 class="card-title">
-                            Live Polling
-                        </h4>
+                <div class="list-group list-group-flush">
 
-                        <p class="text-muted">
-                            Create live classroom polling questions and view results in real time.
-                        </p>
-                    </div>
-
-                    <a class="btn btn-dark w-100"
-                       href="{% url 'create_question' %}">
-                        Create New Poll Question
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- QUIZZES -->
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
-
-                    <div>
-                        <h4 class="card-title">
-                            Quiz System
-                        </h4>
-
-                        <p class="text-muted">
-                            Create self-paced quizzes and upload questions using CSV files.
-                        </p>
-                    </div>
-
-                    <a class="btn btn-dark w-100"
-                       href="{% url 'create_quiz' user.id %}">
-                        Create New Quiz
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- TESTS -->
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
-
-                    <div>
-                        <h4 class="card-title">
-                            Tests
-                        </h4>
-
-                        <p class="text-muted">
-                            Graded assessments. Students sign in, and every answer
-                            is recorded against their name.
-                        </p>
-                    </div>
-
-                    <a class="btn btn-dark w-100" href="{% url 'create_test' %}">
-                        Create New Test
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- FLASHCARDS -->
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
-
-                    <div>
-                        <h4 class="card-title">
-                            Flash Cards
-                        </h4>
-
-                        <p class="text-muted">
-                            Create study sets students can flip through and self-assess.
-                        </p>
-                    </div>
-
-                    <a class="btn btn-dark w-100"
-                       href="{% url 'create_flashcard_set' user.id %}">
-                        Create Flash Card Set
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- STUDENT ACCESS -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-
-            <h4 class="card-title">
-                Student Access
-            </h4>
-
-            <p class="mb-2">
-                Give students your Teacher ID or send them directly to your polling room.
-                The room always shows whichever question you are currently showing.
-                Each question also has its own permanent link, listed below, which keeps
-                accepting answers even when it is not showing in the room.
-            </p>
-
-            <div class="mb-3">
-            <span class="badge bg-dark fs-6">
-                Teacher ID: {{ user.id }}
-            </span>
-            </div>
-
-            <div>
-                <strong>Polling Student Room:</strong>
-                <br>
-
-                <a href="{% url 'student_room' user.id %}">
-                    https://quickpulsepro.onrender.com/student/{{ user.id }}/
-                </a>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- POLLING QUESTIONS -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-
-                <h4 class="card-title mb-0">
-                    Your Polling Questions
-                </h4>
-
-                <span class="badge bg-secondary">
-                {{ questions|length }} Total
-            </span>
-
-            </div>
-
-            {% if questions %}
-
-                <div class="list-group">
-
-                    {% for q in questions %}
-
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-
-                            <div>
-
-                                <strong>
-                                    {{ q.question_text }}
-                                </strong>
-
-                                <div class="text-muted small">
-                                    Created: {{ q.created_at|date:"M d, Y g:i A" }}
-                                </div>
-
-                                {% if q.is_active %}
-                                    <span class="badge bg-success mt-2">
-                                    Showing in Room
+                    {% for test in needs_grading %}
+                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3"
+                           href="{% url 'test_results' test.id %}">
+                            <span>
+                                <span class="badge bg-warning text-dark">Grade</span>
+                                <strong>{{ test.title }}</strong>
+                                <span class="text-muted">
+                                    — {{ test.ungraded }} answer{{ test.ungraded|pluralize }} not graded
                                 </span>
-                                {% else %}
-                                    <span class="badge bg-secondary mt-2">
-                                    Not in Room
-                                </span>
-                                {% endif %}
-
-                                <span class="badge bg-dark mt-2">
-                                    {{ q.get_question_type_display }}
-                                </span>
-
-                                <div class="text-muted small mt-1">
-                                    Total responses: {{ q.response_count }}
-                                </div>
-
-                                <div class="text-muted small mt-2">
-                                    Permanent Question Link:
-                                </div>
-
-                                <a href="{% url 'poll_question_page' q.public_id %}">
-                                    https://quickpulsepro.onrender.com{% url 'poll_question_page' q.public_id %}
-                                </a>
-
-                            </div>
-
-                            <div class="d-flex gap-2">
-
-                                <a class="btn btn-outline-primary btn-sm"
-                                   href="{% url 'question_results' q.id %}">
-                                    View Results
-                                </a>
-
-                                <form method="POST"
-                                      action="{% url 'toggle_poll_question_active' q.id %}">
-                                    {% csrf_token %}
-
-                                    {% if q.is_active %}
-                                        <button type="submit" class="btn btn-outline-warning btn-sm">
-                                            Remove from Room
-                                        </button>
-                                    {% else %}
-                                        <button type="submit" class="btn btn-outline-success btn-sm">
-                                            Show in Room
-                                        </button>
-                                    {% endif %}
-                                </form>
-
-                                <form method="POST"
-                                      action="{% url 'clear_poll_responses' q.id %}"
-                                      onsubmit="return confirm('Clear all {{ q.response_count }} response{{ q.response_count|pluralize }} for this question? This cannot be undone.');">
-                                    {% csrf_token %}
-
-                                    <button type="submit"
-                                            class="btn btn-outline-secondary btn-sm"
-                                            {% if not q.response_count %}disabled{% endif %}>
-                                        Clear Responses
-                                    </button>
-                                </form>
-
-                                <a href="{% url 'delete_poll_question' q.id %}"
-                                   class="btn btn-outline-danger btn-sm">
-                                    Delete
-                                </a>
-
-                            </div>
-
-                        </div>
-
+                            </span>
+                            <span class="text-muted small">Open results →</span>
+                        </a>
                     {% endfor %}
 
+                    {% for test in open_tests %}
+                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3"
+                           href="{% url 'edit_test' test.id %}">
+                            <span>
+                                <span class="badge bg-success">Open</span>
+                                <strong>{{ test.title }}</strong>
+                                <span class="text-muted">— students can take this right now</span>
+                            </span>
+                            <span class="text-muted small">Manage →</span>
+                        </a>
+                    {% endfor %}
+
+                    {% if active_question %}
+                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3"
+                           href="{% url 'question_results' active_question.id %}">
+                            <span>
+                                <span class="badge bg-success">Live</span>
+                                <strong>{{ active_question.question_text|truncatechars:70 }}</strong>
+                                <span class="text-muted">— showing in your student room</span>
+                            </span>
+                            <span class="text-muted small">Watch results →</span>
+                        </a>
+                    {% endif %}
+
                 </div>
-
-            {% else %}
-
-                <p class="text-muted mb-0">
-                    No polling questions created yet.
-                </p>
-
-            {% endif %}
-
-        </div>
-    </div>
-
-    <!-- QUIZZES -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-
-                <h4 class="card-title mb-0">
-                    Your Quizzes
-                </h4>
-
-                <span class="badge bg-secondary">
-                {{ quizs|length }} Total
-            </span>
 
             </div>
-
-            {% if quizs %}
-
-                <div class="list-group">
-
-                    {% for q in quizs %}
-
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-
-                            <div>
-
-                                <strong>
-                                    {{ q.title }}
-                                </strong>
-
-                                <div class="text-muted small mt-1">
-                                    Created: {{ q.created_at|date:"M d, Y g:i A" }}
-                                </div>
-
-                                <div class="text-muted small mt-2">
-                                    Student Quiz Link:
-                                </div>
-
-                                <a href="{% url 'start_quiz' q.public_id %}">
-                                    https://quickpulsepro.onrender.com{% url 'start_quiz' q.public_id %}
-                                </a>
-
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <div class="text-muted small mt-1">
-                                    Total responses: {{ q.responses.count }}
-                                </div>
-                                <a class="btn btn-outline-primary btn-sm"
-                                   href="{% url 'quiz_results' q.id %}">
-                                    View Results
-                                </a>
-
-                                <form method="POST"
-                                      action="{% url 'delete_quiz' q.id %}"
-                                      onsubmit="return confirm('Delete this quiz? This will also delete its questions and responses.');">
-                                    {% csrf_token %}
-
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        Delete
-                                    </button>
-                                </form>
-
-                            </div>
-
-                        </div>
-
-                    {% endfor %}
-
-                </div>
-
-            {% else %}
-
+        </div>
+    {% else %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Nothing needs your attention</h4>
                 <p class="text-muted mb-0">
-                    No quizzes created yet.
+                    No tests are open, nothing is waiting to be graded, and no poll
+                    question is showing in your student room.
                 </p>
-
-            {% endif %}
-
-        </div>
-    </div>
-
-    <!-- TESTS -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="card-title mb-0">Your Tests</h4>
-                <span class="badge bg-secondary">{{ tests|length }} Total</span>
             </div>
-
-            {% if tests %}
-                <div class="list-group">
-                    {% for t in tests %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-
-                            <div>
-                                <strong>{{ t.title }}</strong>
-
-                                {% if t.is_open %}
-                                    <span class="badge bg-success">Open</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Closed</span>
-                                {% endif %}
-
-                                <div class="text-muted small mt-1">
-                                    Created: {{ t.created_at|date:"M d, Y g:i A" }}
-                                </div>
-
-                                <div class="text-muted small mt-2">
-                                    Student Test Link:
-                                </div>
-
-                                <a href="{% url 'take_test' t.public_id %}">
-                                    https://quickpulsepro.onrender.com{% url 'take_test' t.public_id %}
-                                </a>
-                            </div>
-
-                            <div class="d-flex gap-2 align-items-center">
-                                <div class="text-muted small">
-                                    {{ t.attempts.count }} attempt{{ t.attempts.count|pluralize }}
-                                </div>
-
-                                <a class="btn btn-outline-primary btn-sm"
-                                   href="{% url 'test_results' t.id %}">
-                                    Results
-                                </a>
-
-                                <a class="btn btn-outline-secondary btn-sm"
-                                   href="{% url 'edit_test' t.id %}">
-                                    Edit
-                                </a>
-                            </div>
-
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-muted mb-0">No tests created yet.</p>
-            {% endif %}
-
         </div>
-    </div>
+    {% endif %}
 
-    <!-- FLASH CARDS -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
+    <!-- THE FOUR TOOLS -->
+    <div class="row">
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-
-                <h4 class="card-title mb-0">
-                    Your Flash Card Sets
-                </h4>
-
-                <span class="badge bg-secondary">
-                {{ flashcard_sets|length }} Total
-            </span>
-
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="card-title">Live Polling</h4>
+                        <p class="text-muted mb-2">
+                            One question at a time in your student room, with results
+                            updating as answers arrive.
+                        </p>
+                        <p class="text-muted small">
+                            {{ counts.questions }} question{{ counts.questions|pluralize }}
+                        </p>
+                    </div>
+                    <a class="btn btn-dark w-100" href="{% url 'polling_home' %}">
+                        Open Polling
+                    </a>
+                </div>
             </div>
-
-            {% if flashcard_sets %}
-
-                <div class="list-group">
-
-                    {% for f in flashcard_sets %}
-
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-
-                            <div>
-
-                                <strong>
-                                    {{ f.title }}
-                                </strong>
-
-                                <div class="text-muted small mt-1">
-                                    Created: {{ f.created_at|date:"M d, Y g:i A" }}
-                                </div>
-
-                                <div class="text-muted small mt-2">
-                                    Student Flash Card Link:
-                                </div>
-
-                                <a href="{% url 'start_flashcards' f.public_id %}">
-                                    https://quickpulsepro.onrender.com{% url 'start_flashcards' f.public_id %}
-                                </a>
-
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <div class="text-muted small mt-1">
-                                    Total responses: {{ f.responses.count }}
-                                </div>
-
-                                <a class="btn btn-outline-primary btn-sm"
-                                   href="{% url 'flashcard_results' f.id %}">
-                                    View Results
-                                </a>
-
-                                <form method="POST"
-                                      action="{% url 'delete_flashcard_set' f.id %}"
-                                      onsubmit="return confirm('Delete this flash card set?');">
-                                    {% csrf_token %}
-
-                                    <button type="submit"
-                                            class="btn btn-outline-danger btn-sm">
-                                        Delete
-                                    </button>
-                                </form>
-
-                            </div>
-
-                        </div>
-
-                    {% endfor %}
-
-                </div>
-
-            {% else %}
-
-                <p class="text-muted mb-0">
-                    No flash card sets created yet.
-                </p>
-
-            {% endif %}
-
         </div>
+
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="card-title">Quizzes</h4>
+                        <p class="text-muted mb-2">
+                            Self-paced practice for review. Anonymous, retakeable,
+                            and not graded.
+                        </p>
+                        <p class="text-muted small">
+                            {{ counts.quizzes }} quiz{{ counts.quizzes|pluralize:"zes" }}
+                        </p>
+                    </div>
+                    <a class="btn btn-dark w-100" href="{% url 'quizzes_home' %}">
+                        Open Quizzes
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="card-title">Flash Cards</h4>
+                        <p class="text-muted mb-2">
+                            Study sets students flip through and self-assess.
+                        </p>
+                        <p class="text-muted small">
+                            {{ counts.flashcard_sets }} set{{ counts.flashcard_sets|pluralize }}
+                        </p>
+                    </div>
+                    <a class="btn btn-dark w-100" href="{% url 'flashcards_home' %}">
+                        Open Flash Cards
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="card-title">Tests</h4>
+                        <p class="text-muted mb-2">
+                            Graded assessments. Students sign in, and every answer is
+                            recorded against their name.
+                        </p>
+                        <p class="text-muted small">
+                            {{ counts.tests }} test{{ counts.tests|pluralize }}
+                        </p>
+                    </div>
+                    <a class="btn btn-dark w-100" href="{% url 'tests_home' %}">
+                        Open Tests
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 {% endblock %}

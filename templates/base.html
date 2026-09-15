@@ -18,6 +18,26 @@
             font-size: 2rem;
         }
 
+        .nav-section {
+            color: rgba(255, 255, 255, 0.72);
+            text-decoration: none;
+            padding: 0.35rem 0.7rem;
+            border-radius: 0.375rem;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .nav-section:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-section-active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.18);
+            font-weight: 600;
+        }
+
         @media (max-width: 576px) {
             .student-home-title {
                 font-size: 1.5rem;
@@ -90,10 +110,29 @@
     <div class="container d-flex justify-content-between">
 
         <!-- Left side -->
-        <div>
-            <a href="{% url 'dashboard' %}" class="navbar-brand">
+        <div class="d-flex align-items-center flex-wrap gap-1">
+            <a href="{% url 'dashboard' %}" class="navbar-brand me-3">
                 QuickPulse Pro
             </a>
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'polling_home' %}"
+                   class="nav-section {% if active_section == 'polling' %}nav-section-active{% endif %}">
+                    Polling
+                </a>
+                <a href="{% url 'quizzes_home' %}"
+                   class="nav-section {% if active_section == 'quizzes' %}nav-section-active{% endif %}">
+                    Quizzes
+                </a>
+                <a href="{% url 'flashcards_home' %}"
+                   class="nav-section {% if active_section == 'flashcards' %}nav-section-active{% endif %}">
+                    Flash Cards
+                </a>
+                <a href="{% url 'tests_home' %}"
+                   class="nav-section {% if active_section == 'tests' %}nav-section-active{% endif %}">
+                    Tests
+                </a>
+            {% endif %}
         </div>
 
         <!-- Right side -->

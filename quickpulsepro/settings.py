@@ -73,6 +73,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'polls.context_processors.student_auth',
+                'polls.context_processors.active_section',
             ],
         },
     },

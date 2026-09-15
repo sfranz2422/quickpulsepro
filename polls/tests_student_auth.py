@@ -168,7 +168,7 @@ class StudentSignInTests(TestCase):
         client.force_login(teacher)
 
         html = client.get(reverse("dashboard")).content.decode()
-        self.assertIn("Teacher Dashboard", html)
+        self.assertIn("Logged in as teach", html)
         self.assertNotIn("Student Sign In", html)
 
     def test_a_signed_in_student_gets_no_teacher_access(self):

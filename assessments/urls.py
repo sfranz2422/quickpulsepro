@@ -5,6 +5,7 @@ from . import views
 
 urlpatterns = [
     # Authoring
+    path("tests/", views.tests_home, name="tests_home"),
     path("tests/new/", views.create_test, name="create_test"),
     path("tests/<int:test_id>/edit/", views.edit_test, name="edit_test"),
     path(

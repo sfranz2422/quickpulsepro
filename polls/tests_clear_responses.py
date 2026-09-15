@@ -131,14 +131,14 @@ class ClearResponsesTests(TestCase):
 
     # ---------- the dashboard button ----------
 
-    def test_dashboard_shows_counts_and_an_enabled_button(self):
-        html = self.client.get(reverse("dashboard")).content.decode()
+    def test_polling_page_shows_counts_and_an_enabled_button(self):
+        html = self.client.get(reverse("polling_home")).content.decode()
         self.assertIn("Clear Responses", html)
         self.assertIn("Total responses: 3", html)
         self.assertIn(reverse("clear_poll_responses", args=[self.question.id]), html)
 
     def test_button_is_disabled_when_there_is_nothing_to_clear(self):
         PollResponse.objects.all().delete()
-        html = self.client.get(reverse("dashboard")).content.decode()
+        html = self.client.get(reverse("polling_home")).content.decode()
         self.assertIn("disabled", html)
         self.assertIn("Total responses: 0", html)

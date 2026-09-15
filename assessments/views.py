@@ -18,6 +18,13 @@ from .models import Test, TestAnswer, TestAttempt, TestQuestion
 
 
 @login_required
+def tests_home(request):
+    return render(request, "assessments/tests_home.html", {
+        "tests": Test.objects.filter(teacher=request.user),
+    })
+
+
+@login_required
 def create_test(request):
     if request.method == "POST":
         form = TestForm(request.POST)

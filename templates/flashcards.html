@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="mb-1">Flash Cards</h1>
+            <p class="text-muted mb-0">Study sets students flip through and self-assess.</p>
+        </div>
+
+        <a class="btn btn-dark" href="{% url 'create_flashcard_set' user.id %}">Create Flash Card Set</a>
+    </div>
+
+    <!-- FLASH CARDS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h4 class="card-title mb-0">
+                    Your Flash Card Sets
+                </h4>
+
+                <span class="badge bg-secondary">
+                {{ flashcard_sets|length }} Total
+            </span>
+
+            </div>
+
+            {% if flashcard_sets %}
+
+                <div class="list-group">
+
+                    {% for f in flashcard_sets %}
+
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <strong>
+                                    {{ f.title }}
+                                </strong>
+
+                                <div class="text-muted small mt-1">
+                                    Created: {{ f.created_at|date:"M d, Y g:i A" }}
+                                </div>
+
+                                <div class="text-muted small mt-2">
+                                    Student Flash Card Link:
+                                </div>
+
+                                <a href="{% url 'start_flashcards' f.public_id %}">
+                                    https://quickpulsepro.onrender.com{% url 'start_flashcards' f.public_id %}
+                                </a>
+
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <div class="text-muted small mt-1">
+                                    Total responses: {{ f.responses.count }}
+                                </div>
+
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'flashcard_results' f.id %}">
+                                    View Results
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'delete_flashcard_set' f.id %}"
+                                      onsubmit="return confirm('Delete this flash card set?');">
+                                    {% csrf_token %}
+
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    No flash card sets created yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+{% endblock %}

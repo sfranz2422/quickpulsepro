@@ -3,7 +3,7 @@ from pydoc import describe
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -38,24 +38,69 @@ from .models import FlashCardResponse
 import random
 
 
-@login_required
-def dashboard(request):
-    questions = PollQuestion.objects.filter(
-        teacher=request.user
+def _teacher_poll_questions(user):
+    return PollQuestion.objects.filter(
+        teacher=user
     ).annotate(
         response_count=Count("responses")
     ).order_by("-created_at")
-    quizs = Quiz.objects.filter(
-        teacher=request.user
-    ).order_by("-created_at")
-    flashcard_sets = FlashCardSet.objects.filter(
-        teacher=request.user
-    ).order_by("-created_at")
-    tests = request.user.tests.all()
+
+
+@login_required
+def dashboard(request):
+    """Landing page: where to go, and what is waiting on you."""
+    from assessments.models import Test
+
+    active_question = PollQuestion.objects.filter(
+        teacher=request.user,
+        is_active=True
+    ).order_by("-created_at").first()
+
+    tests = Test.objects.filter(teacher=request.user).annotate(
+        ungraded=Count(
+            "questions__answers",
+            filter=Q(
+                questions__answers__points_awarded__isnull=True,
+                questions__answers__attempt__submitted_at__isnull=False,
+            )
+        )
+    )
+
+    needs_grading = [test for test in tests if test.ungraded]
+    open_tests = [test for test in tests if test.is_open]
 
     return render(request, "dashboard.html", {
-        "questions": questions, "quizs": quizs, "flashcard_sets": flashcard_sets,
-        "tests": tests,
+        "active_question": active_question,
+        "needs_grading": needs_grading,
+        "open_tests": open_tests,
+        "counts": {
+            "questions": PollQuestion.objects.filter(teacher=request.user).count(),
+            "quizzes": Quiz.objects.filter(teacher=request.user).count(),
+            "flashcard_sets": FlashCardSet.objects.filter(teacher=request.user).count(),
+            "tests": tests.count(),
+        },
+    })
+
+
+@login_required
+def polling_home(request):
+    return render(request, "polling.html", {
+        "questions": _teacher_poll_questions(request.user),
+    })
+
+
+@login_required
+def quizzes_home(request):
+    return render(request, "quizzes.html", {
+        "quizs": Quiz.objects.filter(teacher=request.user).order_by("-created_at"),
+    })
+
+
+@login_required
+def flashcards_home(request):
+    return render(request, "flashcards.html", {
+        "flashcard_sets": FlashCardSet.objects.filter(
+            teacher=request.user).order_by("-created_at"),
     })
 
 
