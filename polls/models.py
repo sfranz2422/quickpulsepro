@@ -8,6 +8,37 @@ from django.contrib.auth.models import User
 SHORT_ANSWER_MAX_LENGTH = 500
 
 
+class Student(models.Model):
+    """A student identified by Google Sign-In.
+
+    Deliberately not a django.contrib.auth User: teacher accounts remain
+    the only thing that can reach the teacher side of the app, and a
+    student signing in gains no privileges beyond having their answers
+    labelled with their name.
+    """
+
+    # Google's stable account id. Email addresses can change or be
+    # reassigned; `sub` cannot, so identity hangs off it.
+    google_sub = models.CharField(max_length=255, unique=True)
+
+    email = models.EmailField()
+    full_name = models.CharField(max_length=200, blank=True)
+    picture_url = models.URLField(max_length=500, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["full_name", "email"]
+
+    @property
+    def display_name(self):
+        return self.full_name or self.email
+
+    def __str__(self):
+        return self.display_name
+
+
 class PollQuestion(models.Model):
     MULTIPLE_CHOICE = "MC"
     SHORT_ANSWER = "SA"
@@ -116,6 +147,15 @@ class QuizResponse(models.Model):
         related_name="responses"
     )
 
+    # Set when the student was signed in; anonymous answers leave it null.
+    student = models.ForeignKey(
+        "Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quiz_responses"
+    )
+
     selected_option = models.CharField(max_length=1)
 
     is_correct = models.BooleanField()
@@ -131,6 +171,15 @@ class PollResponse(models.Model):
         PollQuestion,
         on_delete=models.CASCADE,
         related_name="responses"
+    )
+
+    # Set when the student was signed in; anonymous answers leave it null.
+    student = models.ForeignKey(
+        "Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="poll_responses"
     )
 
     # Used by multiple choice questions.

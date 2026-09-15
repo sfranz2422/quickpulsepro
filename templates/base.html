@@ -113,7 +113,25 @@
                     <button class="btn btn-outline-light btn-sm">Logout</button>
                 </form>
 
+            {% elif current_student %}
+                <span class="text-white me-2">
+                    {{ current_student.display_name }}
+                </span>
+
+                <form action="{% url 'student_sign_out' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn btn-outline-light btn-sm">Sign Out</button>
+                </form>
+
             {% else %}
+                {% if google_sign_in_configured %}
+                    <a href="{% url 'student_sign_in' %}?next={{ request.get_full_path|urlencode }}"
+                       class="btn btn-outline-light btn-sm me-2">
+                        Student Sign In
+                    </a>
+                {% endif %}
+
                 <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm me-2">
                     Teacher Login
                 </a>

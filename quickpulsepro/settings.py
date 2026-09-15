@@ -71,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'polls.context_processors.student_auth',
             ],
         },
     },
@@ -146,6 +147,14 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Google Sign-In for students. With no client ID set, every student-facing
+# piece of the feature hides itself and the site behaves as it did before.
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+
+# Optional comma-separated allowlist, e.g. "myschool.org". Empty means any
+# Google account may sign in.
+GOOGLE_ALLOWED_DOMAINS = os.environ.get("GOOGLE_ALLOWED_DOMAINS", "")
+
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'

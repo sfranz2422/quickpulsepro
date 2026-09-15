@@ -1,6 +1,7 @@
 import uuid
 from pydoc import describe
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
@@ -8,6 +9,15 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from .models import PollQuestion, FlashCard, FlashCardSet
 from .forms import PollQuestionForm, CreateFlashCardSetForm, ShortAnswerResponseForm
+from .google_auth import GoogleAuthError, verify_google_credential
+from .models import Student
+from .students import (
+    get_current_student,
+    safe_next_url,
+    sign_in_student,
+    sign_out_student,
+)
+from django.views.decorators.http import require_POST
 from .models import PollResponse
 from .forms import SelectTeacherForm
 from django.contrib import messages
@@ -145,7 +155,8 @@ def _record_poll_answer(request, question, page_url, submit_url):
 
         PollResponse.objects.create(
             question=question,
-            text_answer=form.cleaned_data["text_answer"]
+            text_answer=form.cleaned_data["text_answer"],
+            student=get_current_student(request)
         )
 
     else:
@@ -156,7 +167,8 @@ def _record_poll_answer(request, question, page_url, submit_url):
 
         PollResponse.objects.create(
             question=question,
-            selected_option=selected_option
+            selected_option=selected_option,
+            student=get_current_student(request)
         )
 
     request.session[session_key] = True
@@ -165,6 +177,51 @@ def _record_poll_answer(request, question, page_url, submit_url):
         "teacher": question.teacher,
         "question": question,
     })
+
+
+def student_sign_in(request):
+    """Shows the Google button. Signing in is always optional."""
+    if get_current_student(request):
+        return redirect(safe_next_url(request))
+
+    return render(request, "student_sign_in.html", {
+        "next_url": request.GET.get("next", ""),
+        "google_oauth_client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+    })
+
+
+@require_POST
+def student_google_callback(request):
+    """Receives the credential the Google button produced and verifies it."""
+    destination = safe_next_url(request)
+
+    try:
+        claims = verify_google_credential(request.POST.get("credential"))
+    except GoogleAuthError as error:
+        messages.error(request, str(error))
+        return redirect("student_sign_in")
+
+    student, _ = Student.objects.update_or_create(
+        google_sub=claims["sub"],
+        defaults={
+            "email": claims.get("email", ""),
+            "full_name": claims.get("name", ""),
+            "picture_url": (claims.get("picture") or "")[:500],
+        }
+    )
+
+    sign_in_student(request, student)
+    messages.success(request, f"Signed in as {student.display_name}.")
+
+    return redirect(destination)
+
+
+@require_POST
+def student_sign_out(request):
+    sign_out_student(request)
+    messages.success(request, "Signed out.")
+
+    return redirect(safe_next_url(request))
 
 
 def student_room(request, teacher_id):
@@ -631,7 +688,8 @@ def display_quiz(request, public_id):
             quiz=quiz,
             question=current_question,
             selected_option=selected_option,
-            is_correct=is_correct
+            is_correct=is_correct,
+            student=get_current_student(request)
         )
         request.session[session_quiz_key] += 1
 

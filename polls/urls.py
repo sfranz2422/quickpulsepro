@@ -27,6 +27,14 @@ urlpatterns = [
     ),
     path("student/", views.student_landing, name="student_landing"),
 
+    path("student/signin/", views.student_sign_in, name="student_sign_in"),
+    path(
+        "student/signin/google/",
+        views.student_google_callback,
+        name="student_google_callback"
+    ),
+    path("student/signout/", views.student_sign_out, name="student_sign_out"),
+
     path(
         "poll/<uuid:public_id>/",
         views.poll_question_page,

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm" style="max-width: 560px;">
+    <div class="card-body">
+
+        <h1 class="h3 mb-3">Student Sign In</h1>
+
+        <p class="text-muted">
+            Signing in with Google lets your teacher see which answers are yours.
+            You can still answer polls and quizzes without signing in.
+        </p>
+
+        {% if google_sign_in_configured %}
+
+            <form id="google-signin-form"
+                  method="post"
+                  action="{% url 'student_google_callback' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <input type="hidden" name="credential" id="google-credential">
+            </form>
+
+            <div id="g_id_onload"
+                 data-client_id="{{ google_oauth_client_id }}"
+                 data-callback="handleGoogleCredential"
+                 data-auto_prompt="false"></div>
+
+            <div class="g_id_signin mt-3"
+                 data-type="standard"
+                 data-size="large"
+                 data-text="signin_with"
+                 data-shape="rectangular"></div>
+
+            <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+            <script>
+                function handleGoogleCredential(response) {
+                    document.getElementById("google-credential").value = response.credential;
+                    document.getElementById("google-signin-form").submit();
+                }
+            </script>
+
+        {% else %}
+
+            <div class="alert alert-secondary mb-0">
+                Student sign-in is not set up on this site yet.
+            </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+<br>
+<a class="btn btn-dark" href="{% url 'home' %}">Back</a>
+
+{% endblock %}
