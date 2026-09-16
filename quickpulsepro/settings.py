@@ -149,6 +149,21 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Google Sign-In needs two of Django's security defaults relaxed.
+#
+# Django defaults SECURE_REFERRER_POLICY to "same-origin", which sends no
+# referrer at all on cross-origin requests. Google's identity service uses that
+# to work out which site is asking, and without it reports
+# "The given origin is not allowed for the given client ID" no matter how the
+# console is configured.
+#
+# Django also defaults SECURE_CROSS_ORIGIN_OPENER_POLICY to "same-origin",
+# which severs window.opener for the popup Google opens. The popup then cannot
+# hand the credential back and sits there blank, throwing
+# "Cannot read properties of null (reading 'postMessage')".
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
 # Google Sign-In for students. With no client ID set, every student-facing
 # piece of the feature hides itself and the site behaves as it did before.
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")

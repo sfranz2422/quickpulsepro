@@ -231,3 +231,26 @@ class CredentialVerificationTests(TestCase):
             self.verify(dict(CLAIMS, email="stranger@gmail.com"))["email"],
             "stranger@gmail.com",
         )
+
+
+class SecurityHeaderTests(TestCase):
+    """Django's defaults for these two headers break Google Sign-In.
+
+    Referrer-Policy "same-origin" hides the origin from Google, which reports
+    it as "The given origin is not allowed for the given client ID".
+    Cross-Origin-Opener-Policy "same-origin" severs window.opener, so Google's
+    popup cannot hand the credential back and sits blank.
+    """
+
+    def test_referrer_policy_lets_google_see_the_origin(self):
+        resp = Client().get(reverse("student_sign_in"))
+        self.assertEqual(resp["Referrer-Policy"], "strict-origin-when-cross-origin")
+
+    def test_opener_policy_allows_the_google_popup_to_reply(self):
+        resp = Client().get(reverse("student_sign_in"))
+        self.assertEqual(
+            resp["Cross-Origin-Opener-Policy"], "same-origin-allow-popups")
+
+    def test_clickjacking_protection_is_still_on(self):
+        resp = Client().get(reverse("student_sign_in"))
+        self.assertEqual(resp["X-Frame-Options"], "DENY")
