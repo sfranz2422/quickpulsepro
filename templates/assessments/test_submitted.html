@@ -1,7 +1,11 @@
 {% extends "base.html" %}
+{% load markdown_tags %}
+
+{% block extra_css %}{% include "assessments/_markdown_assets.html" %}{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm" style="max-width: 620px;">
+
+<div class="card shadow-sm mb-4" style="max-width: 680px;">
     <div class="card-body">
 
         <h1 class="h3 mb-3">{{ test.title }}</h1>
@@ -27,4 +31,30 @@
 
     </div>
 </div>
+
+{% if test.has_completion_screen %}
+    <div class="card shadow-sm mb-4" style="max-width: 680px;">
+        <div class="card-body">
+
+            {% if test.completion_message %}
+                <div class="markdown-body">
+                    {{ test.completion_message|markdown }}
+                </div>
+            {% endif %}
+
+            {% if test.completion_link_url %}
+                <a class="btn btn-success btn-lg mt-3"
+                   href="{{ test.completion_link_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    {{ test.completion_link_label }}
+                </a>
+            {% endif %}
+
+        </div>
+    </div>
+{% endif %}
+
 {% endblock %}
+
+{% block extra_js %}{% include "assessments/_markdown_scripts.html" %}{% endblock %}

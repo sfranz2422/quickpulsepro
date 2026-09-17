@@ -56,7 +56,34 @@ def edit_test(request, test_id):
         "questions": test.questions.all(),
         "question_form": TestQuestionForm(),
         "csv_form": TestCSVUploadForm(),
+        "settings_form": TestForm(instance=test),
         "attempt_count": test.attempts.count(),
+    })
+
+
+@login_required
+def update_test_settings(request, test_id):
+    """Title, instructions, and what students see after they submit."""
+    test = _teacher_test(request, test_id)
+
+    if request.method != "POST":
+        return redirect("edit_test", test_id=test.id)
+
+    form = TestForm(request.POST, instance=test)
+
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Test settings saved.")
+        return redirect("edit_test", test_id=test.id)
+
+    return render(request, "assessments/edit_test.html", {
+        "test": test,
+        "questions": test.questions.all(),
+        "question_form": TestQuestionForm(),
+        "csv_form": TestCSVUploadForm(),
+        "settings_form": form,
+        "attempt_count": test.attempts.count(),
+        "show_settings": True,
     })
 
 
@@ -84,6 +111,7 @@ def add_test_question(request, test_id):
         "questions": test.questions.all(),
         "question_form": form,
         "csv_form": TestCSVUploadForm(),
+        "settings_form": TestForm(instance=test),
         "attempt_count": test.attempts.count(),
         "show_question_form": True,
     })

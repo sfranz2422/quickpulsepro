@@ -34,6 +34,13 @@ class Test(models.Model):
     # Students can only start or submit while the test is open.
     is_open = models.BooleanField(default=False)
 
+    # Shown on the finish screen after a student submits. Markdown.
+    completion_message = models.TextField(blank=True)
+
+    # An optional button on that screen, for sending them somewhere next.
+    completion_link_url = models.URLField(max_length=500, blank=True)
+    completion_link_label = models.CharField(max_length=100, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,6 +49,11 @@ class Test(models.Model):
     @property
     def total_points(self):
         return sum(question.points for question in self.questions.all())
+
+    @property
+    def has_completion_screen(self):
+        """True when the teacher has customised what students see at the end."""
+        return bool(self.completion_message or self.completion_link_url)
 
     @property
     def has_short_answer(self):

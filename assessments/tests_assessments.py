@@ -591,3 +591,123 @@ class AccessControlTests(AssessmentTestCase):
         self.client.post(reverse("toggle_test_open", args=[empty.id]))
         empty.refresh_from_db()
         self.assertFalse(empty.is_open)
+
+
+class CompletionScreenTests(AssessmentTestCase):
+    """What the teacher can put on the screen students see after submitting."""
+
+    def settings_url(self):
+        return reverse("update_test_settings", args=[self.test.id])
+
+    def save_settings(self, **overrides):
+        data = {
+            "title": self.test.title,
+            "instructions": "",
+            "completion_message": "",
+            "completion_link_url": "",
+            "completion_link_label": "",
+        }
+        data.update(overrides)
+        return self.client.post(self.settings_url(), data)
+
+    def submit_a_test(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        client.post(reverse("take_test_question", args=[self.test.public_id, 1]),
+                    {f"question_{self.mc.id}": "B", "action": "next"})
+        client.post(reverse("take_test_review", args=[self.test.public_id]))
+        return client
+
+    # ---------- editing ----------
+
+    def test_settings_can_be_edited_after_the_test_exists(self):
+        resp = self.save_settings(
+            title="Unit 3 Exam",
+            completion_message="Head to the **coding challenge** now.",
+            completion_link_url="https://replit.com/@steve/loops",
+            completion_link_label="Open the coding question")
+
+        self.assertRedirects(resp, reverse("edit_test", args=[self.test.id]))
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.title, "Unit 3 Exam")
+        self.assertEqual(self.test.completion_link_url,
+                         "https://replit.com/@steve/loops")
+        self.assertTrue(self.test.has_completion_screen)
+
+    def test_the_workbench_offers_the_settings_form(self):
+        html = self.client.get(
+            reverse("edit_test", args=[self.test.id])).content.decode()
+        self.assertIn('name="completion_message"', html)
+        self.assertIn('name="completion_link_url"', html)
+        self.assertIn(self.settings_url(), html)
+
+    def test_a_link_with_no_label_gets_a_default_one(self):
+        self.save_settings(completion_link_url="https://example.com/next")
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.completion_link_label, "Continue")
+
+    def test_a_label_with_no_link_is_rejected(self):
+        resp = self.save_settings(completion_link_label="Click here")
+        self.assertContains(resp, "Add the link address")
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.completion_link_label, "")
+
+    def test_a_junk_url_is_rejected(self):
+        resp = self.save_settings(completion_link_url="javascript:alert(1)")
+        self.assertContains(resp, "Enter a valid URL")
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.completion_link_url, "")
+
+    def test_another_teacher_cannot_edit_the_settings(self):
+        other = Client()
+        other.force_login(self.other_teacher)
+        resp = other.post(self.settings_url(), {"title": "Hijacked"})
+        self.assertEqual(resp.status_code, 404)
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.title, "Unit 3 Test")
+
+    def test_settings_reject_get(self):
+        self.client.get(self.settings_url())
+        self.test.refresh_from_db()
+        self.assertEqual(self.test.title, "Unit 3 Test")
+
+    # ---------- what the student sees ----------
+
+    def test_the_finish_screen_shows_the_message_and_button(self):
+        self.save_settings(
+            completion_message="Head to the **coding challenge** now.",
+            completion_link_url="https://replit.com/@steve/loops",
+            completion_link_label="Open the coding question")
+
+        client = self.submit_a_test()
+        html = client.get(self.take_url()).content.decode()
+
+        self.assertIn("<strong>coding challenge</strong>", html)
+        self.assertIn("https://replit.com/@steve/loops", html)
+        self.assertIn("Open the coding question", html)
+        self.assertIn('rel="noopener noreferrer"', html)
+
+    def test_the_finish_screen_is_unchanged_when_nothing_is_set(self):
+        client = self.submit_a_test()
+        html = client.get(self.take_url()).content.decode()
+
+        self.assertIn("has been submitted", html)
+        # The skipped short answer auto-zeroes, so a score is shown.
+        self.assertIn("Score:", html)
+        self.assertNotIn("btn-success btn-lg", html)
+
+    def test_the_message_is_still_there_when_they_come_back_later(self):
+        self.save_settings(completion_message="Go do the IDE exercise.")
+        client = self.submit_a_test()
+
+        client.get(self.take_url())
+        html = client.get(self.take_url()).content.decode()
+        self.assertIn("Go do the IDE exercise.", html)
+
+    def test_markdown_in_the_message_is_sanitized(self):
+        self.test.completion_message = "Done <script>alert(1)</script>"
+        self.test.save()
+
+        client = self.submit_a_test()
+        html = client.get(self.take_url()).content.decode()
+        self.assertNotIn("<script>alert(1)</script>", html)

@@ -9,6 +9,11 @@ urlpatterns = [
     path("tests/new/", views.create_test, name="create_test"),
     path("tests/<int:test_id>/edit/", views.edit_test, name="edit_test"),
     path(
+        "tests/<int:test_id>/settings/",
+        views.update_test_settings,
+        name="update_test_settings",
+    ),
+    path(
         "tests/<int:test_id>/questions/add/",
         views.add_test_question,
         name="add_test_question",

@@ -12,10 +12,25 @@ MARKDOWN_TEXTAREA = {
 class TestForm(forms.ModelForm):
     class Meta:
         model = Test
-        fields = ["title", "instructions"]
+
+        fields = [
+            "title",
+            "instructions",
+            "completion_message",
+            "completion_link_url",
+            "completion_link_label",
+        ]
 
         labels = {
             "instructions": "Instructions for students (markdown)",
+            "completion_message": "Finish screen message (markdown)",
+            "completion_link_url": "Finish screen link",
+            "completion_link_label": "Link button text",
+        }
+
+        help_texts = {
+            "completion_message": "Shown after a student submits. Leave blank for none.",
+            "completion_link_url": "Optional. Shows as a button, e.g. an online IDE exercise.",
         }
 
         widgets = {
@@ -28,7 +43,41 @@ class TestForm(forms.ModelForm):
                 "rows": 5,
                 "placeholder": "Optional. Shown before the questions.",
             }),
+            "completion_message": forms.Textarea(attrs={
+                **MARKDOWN_TEXTAREA,
+                "rows": 5,
+                "placeholder": (
+                    "Nice work. Now head to the coding challenge and finish "
+                    "question 3 before the end of the period."
+                ),
+            }),
+            "completion_link_url": forms.URLInput(attrs={
+                "class": "form-control",
+                "placeholder": "https://replit.com/@you/exercise",
+            }),
+            "completion_link_label": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Go to the coding question",
+            }),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        url = (cleaned_data.get("completion_link_url") or "").strip()
+        label = (cleaned_data.get("completion_link_label") or "").strip()
+
+        if label and not url:
+            self.add_error(
+                "completion_link_url",
+                "Add the link address, or clear the button text."
+            )
+
+        # A link with no wording still needs something on the button.
+        if url and not label:
+            cleaned_data["completion_link_label"] = "Continue"
+
+        return cleaned_data
 
 
 class TestQuestionForm(forms.ModelForm):

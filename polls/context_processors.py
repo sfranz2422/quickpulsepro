@@ -39,6 +39,7 @@ SECTION_BY_URL_NAME = {
     "tests_home": "tests",
     "create_test": "tests",
     "edit_test": "tests",
+    "update_test_settings": "tests",
     "add_test_question": "tests",
     "delete_test_question": "tests",
     "upload_test_csv": "tests",
