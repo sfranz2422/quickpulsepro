@@ -338,28 +338,45 @@ def _answers_by_question(attempt):
     return {answer.question_id: answer for answer in attempt.answers.all()}
 
 
-def _save_answers(attempt, questions, posted):
-    for question in questions:
-        raw = (posted.get(f"question_{question.id}") or "").strip()
+def _ordered_questions(test):
+    return list(test.questions.all())
 
-        answer, _ = TestAnswer.objects.get_or_create(
-            attempt=attempt, question=question)
 
-        if question.is_short_answer:
-            answer.text_answer = raw
-            answer.selected_option = ""
-        else:
-            answer.selected_option = raw[:1].upper() if raw else ""
-            answer.text_answer = ""
+def _save_one_answer(attempt, question, posted):
+    """Stores the answer to a single question. Called on every navigation."""
+    raw = (posted.get(f"question_{question.id}") or "").strip()
 
-        answer.save()
+    answer, _ = TestAnswer.objects.get_or_create(
+        attempt=attempt, question=question)
+
+    if question.is_short_answer:
+        answer.text_answer = raw
+        answer.selected_option = ""
+    else:
+        answer.selected_option = raw[:1].upper() if raw else ""
+        answer.text_answer = ""
+
+    answer.save()
+
+
+def _live_attempt(request, test):
+    """The in-progress attempt for this student, or None if they can't work on it."""
+    student = get_current_student(request)
+
+    attempt = TestAttempt.objects.filter(test=test, student=student).first()
+
+    if attempt is None or attempt.is_submitted or not test.is_open:
+        return None
+
+    return attempt
 
 
 @student_required
 def take_test(request, public_id):
+    """Entry point: sorts out the attempt, then sends them to a question."""
     test = get_object_or_404(Test, public_id=public_id)
     student = get_current_student(request)
-    questions = list(test.questions.all())
+    questions = _ordered_questions(test)
 
     attempt = TestAttempt.objects.filter(test=test, student=student).first()
 
@@ -385,39 +402,128 @@ def take_test(request, public_id):
     if attempt is None:
         attempt, _ = TestAttempt.objects.get_or_create(test=test, student=student)
 
-    if request.method == "POST":
-        _save_answers(attempt, questions, request.POST)
+    # Pick up where they left off: the first question with nothing in it.
+    answers = _answers_by_question(attempt)
 
-        if request.POST.get("action") == "submit":
-            now = timezone.now()
+    for position, question in enumerate(questions, start=1):
+        answer = answers.get(question.id)
 
-            for answer in attempt.answers.select_related("question"):
-                answer.auto_grade()
+        if answer is None or answer.is_blank:
+            return redirect(
+                "take_test_question",
+                public_id=test.public_id,
+                number=position,
+            )
 
-                if answer.points_awarded is not None:
-                    answer.graded_at = now
-                    answer.save(update_fields=["points_awarded", "graded_at"])
+    # Everything is answered, so go straight to the review screen.
+    return redirect("take_test_review", public_id=test.public_id)
 
-            attempt.submitted_at = now
-            attempt.save(update_fields=["submitted_at"])
 
-            messages.success(request, "Your test has been submitted.")
-        else:
-            messages.success(request, "Progress saved. You have not submitted yet.")
+@student_required
+def take_test_question(request, public_id, number):
+    """One question on its own page."""
+    test = get_object_or_404(Test, public_id=public_id)
+    attempt = _live_attempt(request, test)
 
+    if attempt is None:
         return redirect("take_test", public_id=test.public_id)
 
-    existing = _answers_by_question(attempt)
+    questions = _ordered_questions(test)
 
-    rows = [
-        {"question": question, "answer": existing.get(question.id)}
-        for question in questions
-    ]
+    if not 1 <= number <= len(questions):
+        return redirect("take_test", public_id=test.public_id)
 
-    return render(request, "assessments/take_test.html", {
+    question = questions[number - 1]
+
+    if request.method == "POST":
+        # Every move saves first, so navigating can never lose an answer.
+        _save_one_answer(attempt, question, request.POST)
+
+        action = request.POST.get("action", "next")
+
+        if action == "prev" and number > 1:
+            return redirect(
+                "take_test_question",
+                public_id=test.public_id,
+                number=number - 1,
+            )
+
+        if action == "review" or number == len(questions):
+            return redirect("take_test_review", public_id=test.public_id)
+
+        return redirect(
+            "take_test_question",
+            public_id=test.public_id,
+            number=number + 1,
+        )
+
+    return render(request, "assessments/take_test_question.html", {
+        "test": test,
+        "attempt": attempt,
+        "question": question,
+        "answer": attempt.answers.filter(question=question).first(),
+        "number": number,
+        "total": len(questions),
+        "progress_percent": round(number / len(questions) * 100),
+        "is_first": number == 1,
+        "is_last": number == len(questions),
+    })
+
+
+@student_required
+def take_test_review(request, public_id):
+    """The last screen: what's answered, what isn't, and the submit button."""
+    test = get_object_or_404(Test, public_id=public_id)
+    attempt = _live_attempt(request, test)
+
+    if attempt is None:
+        return redirect("take_test", public_id=test.public_id)
+
+    questions = _ordered_questions(test)
+    answers = _answers_by_question(attempt)
+
+    rows = []
+
+    for position, question in enumerate(questions, start=1):
+        answer = answers.get(question.id)
+
+        rows.append({
+            "number": position,
+            "question": question,
+            "answer": answer,
+            "answered": answer is not None and not answer.is_blank,
+        })
+
+    if request.method == "POST":
+        now = timezone.now()
+
+        for question in questions:
+            answer, _ = TestAnswer.objects.get_or_create(
+                attempt=attempt, question=question)
+
+            if answer.is_blank:
+                # Nothing written is worth nothing. The teacher can still
+                # change it on the grading screen.
+                answer.points_awarded = 0
+            else:
+                answer.auto_grade()
+
+            if answer.points_awarded is not None:
+                answer.graded_at = now
+
+            answer.save()
+
+        attempt.submitted_at = now
+        attempt.save(update_fields=["submitted_at"])
+
+        messages.success(request, "Your test has been submitted.")
+        return redirect("take_test", public_id=test.public_id)
+
+    return render(request, "assessments/take_test_review.html", {
         "test": test,
         "attempt": attempt,
         "rows": rows,
+        "unanswered": [row["number"] for row in rows if not row["answered"]],
     })
 
 

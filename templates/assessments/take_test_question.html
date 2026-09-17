@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load markdown_tags %}
+
+{% block extra_css %}{% include "assessments/_markdown_assets.html" %}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+    <h1 class="h4 mb-0">{{ test.title }}</h1>
+    <span class="text-muted small">{{ attempt.student.display_name }}</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-baseline mb-1">
+    <span class="text-muted small">
+        Question {{ number }} of {{ total }}
+    </span>
+    <span class="text-muted small">
+        {{ question.points }} point{{ question.points|pluralize }}
+    </span>
+</div>
+
+<div class="progress mb-4" style="height: 6px;">
+    <div class="progress-bar"
+         role="progressbar"
+         style="width: {{ progress_percent }}%;"
+         aria-valuenow="{{ progress_percent }}"
+         aria-valuemin="0"
+         aria-valuemax="100"></div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+
+            <div class="markdown-body mb-4">
+                {{ question.prompt|markdown }}
+            </div>
+
+            {% if question.is_short_answer %}
+
+                <textarea name="question_{{ question.id }}"
+                          class="form-control"
+                          rows="8"
+                          autofocus
+                          placeholder="Your answer">{% if answer %}{{ answer.text_answer }}{% endif %}</textarea>
+
+            {% else %}
+
+                {% for letter, text in question.options %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="question_{{ question.id }}"
+                               id="q{{ question.id }}{{ letter }}"
+                               value="{{ letter }}"
+                               {% if answer and answer.selected_option == letter %}checked{% endif %}>
+                        <label class="form-check-label" for="q{{ question.id }}{{ letter }}">
+                            {{ letter }}. {{ text }}
+                        </label>
+                    </div>
+                {% endfor %}
+
+            {% endif %}
+
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+            <div>
+                {% if not is_first %}
+                    <button class="btn btn-outline-secondary" name="action" value="prev">
+                        &larr; Back
+                    </button>
+                {% endif %}
+            </div>
+
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <button class="btn btn-outline-dark" name="action" value="review">
+                    Review &amp; Submit
+                </button>
+
+                {% if not is_last %}
+                    <button class="btn btn-success" name="action" value="next">
+                        Next &rarr;
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <p class="text-muted small">
+        Your answer is saved every time you move between questions. You can
+        come back and change anything until you submit.
+    </p>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}{% include "assessments/_markdown_scripts.html" %}{% endblock %}

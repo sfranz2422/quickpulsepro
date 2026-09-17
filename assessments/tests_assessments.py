@@ -222,6 +222,20 @@ class CSVImportTests(AssessmentTestCase):
 
 
 class TakingTests(AssessmentTestCase):
+    """Students see one question at a time, with back/forward and a review screen."""
+
+    def q_url(self, number):
+        return reverse("take_test_question", args=[self.test.public_id, number])
+
+    def review_url(self):
+        return reverse("take_test_review", args=[self.test.public_id])
+
+    def answer(self, client, number, question, value, action="next"):
+        return client.post(self.q_url(number), {
+            f"question_{question.id}": value, "action": action})
+
+    # ---------- getting in ----------
+
     def test_signing_in_is_required(self):
         resp = Client().get(self.take_url())
         self.assertEqual(resp.status_code, 302)
@@ -245,43 +259,127 @@ class TakingTests(AssessmentTestCase):
             reverse("take_test", args=[empty.public_id]))
         self.assertContains(resp, "any questions yet")
 
+    def test_the_entry_point_sends_them_to_the_first_question(self):
+        client = self.student_client()
+        resp = client.get(self.take_url())
+        self.assertRedirects(resp, self.q_url(1))
+
     def test_opening_a_test_starts_an_attempt(self):
         self.student_client().get(self.take_url())
         attempt = TestAttempt.objects.get()
         self.assertEqual(attempt.student.email, "ada@school.org")
         self.assertFalse(attempt.is_submitted)
 
-    def test_saving_progress_keeps_answers_without_submitting(self):
-        client = self.student_client()
-        client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "save",
-            f"question_{self.mc.id}": "A",
-            f"question_{self.sa.id}": "A loop repeats.",
-        })
-        attempt = TestAttempt.objects.get()
-        self.assertFalse(attempt.is_submitted)
-        self.assertEqual(attempt.answers.count(), 2)
-        self.assertIsNone(attempt.answers.get(question=self.mc).points_awarded)
+    # ---------- one question at a time ----------
 
-    def test_saved_answers_come_back_prefilled(self):
+    def test_only_one_question_is_on_the_page(self):
         client = self.student_client()
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "save",
-            f"question_{self.sa.id}": "A loop repeats.",
-        })
-        html = client.get(self.take_url()).content.decode()
-        self.assertIn("A loop repeats.", html)
+        html = client.get(self.q_url(1)).content.decode()
+        self.assertIn("What keyword defines a function", html)
+        self.assertNotIn("Explain what a loop does", html)
+        self.assertIn("Question 1 of 2", html)
+
+    def test_next_moves_forward_and_saves(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        resp = self.answer(client, 1, self.mc, "B")
+
+        self.assertRedirects(resp, self.q_url(2))
+        answer = TestAttempt.objects.get().answers.get(question=self.mc)
+        self.assertEqual(answer.selected_option, "B")
+
+    def test_back_moves_backward_and_saves(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+        resp = self.answer(client, 2, self.sa, "A loop repeats.", action="prev")
+
+        self.assertRedirects(resp, self.q_url(1))
+        answer = TestAttempt.objects.get().answers.get(question=self.sa)
+        self.assertEqual(answer.text_answer, "A loop repeats.")
+
+    def test_an_earlier_answer_comes_back_prefilled(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+        html = client.get(self.q_url(1)).content.decode()
+        self.assertIn('value="B"\n                               checked', html.replace("\r", ""))
+
+    def test_an_answer_can_be_changed_before_submitting(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "A")
+        self.answer(client, 1, self.mc, "B")
+        self.assertEqual(
+            TestAttempt.objects.get().answers.get(question=self.mc).selected_option, "B")
+
+    def test_the_last_question_leads_to_review(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        resp = self.answer(client, 2, self.sa, "It repeats work.")
+        self.assertRedirects(resp, self.review_url())
+
+    def test_review_can_be_reached_from_any_question(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        resp = self.answer(client, 1, self.mc, "B", action="review")
+        self.assertRedirects(resp, self.review_url())
+
+    def test_a_nonsense_question_number_goes_back_to_the_start(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        for number in (0, 99):
+            resp = client.get(self.q_url(number))
+            self.assertRedirects(resp, self.take_url(), target_status_code=302)
+
+    def test_returning_later_resumes_at_the_first_blank_question(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+        self.assertRedirects(client.get(self.take_url()), self.q_url(2))
+
+    def test_returning_with_everything_answered_goes_to_review(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+        self.answer(client, 2, self.sa, "It repeats.")
+        self.assertRedirects(client.get(self.take_url()), self.review_url())
+
+    # ---------- the review screen ----------
+
+    def test_review_lists_every_question_with_its_state(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+
+        resp = client.get(self.review_url())
+        self.assertEqual(resp.context["unanswered"], [2])
+        self.assertContains(resp, "Not answered")
+        self.assertContains(resp, "Answered")
+
+    def test_review_says_so_when_nothing_is_missing(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.answer(client, 1, self.mc, "B")
+        self.answer(client, 2, self.sa, "It repeats.")
+
+        resp = client.get(self.review_url())
+        self.assertEqual(resp.context["unanswered"], [])
+        self.assertContains(resp, "Every question has an answer")
+
+    # ---------- submitting ----------
+
+    def submit(self, client):
+        return client.post(self.review_url())
 
     def test_submitting_auto_grades_multiple_choice_only(self):
         client = self.student_client()
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "submit",
-            f"question_{self.mc.id}": "B",
-            f"question_{self.sa.id}": "It repeats work.",
-        })
+        self.answer(client, 1, self.mc, "B")
+        self.answer(client, 2, self.sa, "It repeats work.")
+        self.submit(client)
+
         attempt = TestAttempt.objects.get()
         self.assertTrue(attempt.is_submitted)
         self.assertEqual(attempt.answers.get(question=self.mc).points_awarded, 2)
@@ -292,22 +390,34 @@ class TakingTests(AssessmentTestCase):
     def test_a_wrong_choice_scores_zero(self):
         client = self.student_client()
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "submit", f"question_{self.mc.id}": "A"})
+        self.answer(client, 1, self.mc, "A")
+        self.submit(client)
         self.assertEqual(
             TestAttempt.objects.get().answers.get(question=self.mc).points_awarded, 0)
+
+    def test_skipped_questions_score_zero_rather_than_waiting_to_be_graded(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        self.submit(client)
+
+        attempt = TestAttempt.objects.get()
+        self.assertEqual(attempt.answers.count(), 2)
+        self.assertEqual(attempt.answers.get(question=self.mc).points_awarded, 0)
+        self.assertEqual(attempt.answers.get(question=self.sa).points_awarded, 0)
+        self.assertFalse(attempt.needs_grading)
 
     def test_a_submitted_test_is_locked(self):
         client = self.student_client()
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "submit", f"question_{self.mc.id}": "B"})
+        self.answer(client, 1, self.mc, "B")
+        self.submit(client)
 
         resp = client.get(self.take_url())
         self.assertContains(resp, "has been submitted")
 
-        client.post(self.take_url(), {
-            "action": "submit", f"question_{self.mc.id}": "A"})
+        # Every student-facing route now refuses to change anything.
+        self.answer(client, 1, self.mc, "A")
+        self.submit(client)
         self.assertEqual(
             TestAttempt.objects.get().answers.get(question=self.mc).selected_option, "B")
 
@@ -323,8 +433,8 @@ class TakingTests(AssessmentTestCase):
     def test_reopening_lets_a_student_resubmit(self):
         client = self.student_client()
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "submit", f"question_{self.mc.id}": "A"})
+        self.answer(client, 1, self.mc, "A")
+        self.submit(client)
 
         attempt = TestAttempt.objects.get()
         self.client.post(reverse("reopen_attempt", args=[attempt.id]))
@@ -333,8 +443,8 @@ class TakingTests(AssessmentTestCase):
         self.assertFalse(attempt.is_submitted)
         self.assertEqual(attempt.reopened_count, 1)
 
-        client.post(self.take_url(), {
-            "action": "submit", f"question_{self.mc.id}": "B"})
+        self.answer(client, 1, self.mc, "B")
+        self.submit(client)
         attempt.refresh_from_db()
         self.assertTrue(attempt.is_submitted)
         self.assertEqual(attempt.answers.get(question=self.mc).points_awarded, 2)
@@ -345,11 +455,13 @@ class GradingAndReportingTests(AssessmentTestCase):
         client = self.student_client(
             dict(CLAIMS, sub=sub, email=f"{sub}@school.org", name=name))
         client.get(self.take_url())
-        client.post(self.take_url(), {
-            "action": "submit",
-            f"question_{self.mc.id}": mc_choice,
-            f"question_{self.sa.id}": text,
-        })
+        client.post(
+            reverse("take_test_question", args=[self.test.public_id, 1]),
+            {f"question_{self.mc.id}": mc_choice, "action": "next"})
+        client.post(
+            reverse("take_test_question", args=[self.test.public_id, 2]),
+            {f"question_{self.sa.id}": text, "action": "next"})
+        client.post(reverse("take_test_review", args=[self.test.public_id]))
         return TestAttempt.objects.get(student__google_sub=sub)
 
     def test_results_lists_every_student(self):

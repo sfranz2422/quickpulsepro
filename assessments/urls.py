@@ -60,4 +60,14 @@ urlpatterns = [
 
     # Students
     path("test/<uuid:public_id>/", views.take_test, name="take_test"),
+    path(
+        "test/<uuid:public_id>/q/<int:number>/",
+        views.take_test_question,
+        name="take_test_question",
+    ),
+    path(
+        "test/<uuid:public_id>/review/",
+        views.take_test_review,
+        name="take_test_review",
+    ),
 ]

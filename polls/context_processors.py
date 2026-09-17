@@ -52,6 +52,9 @@ SECTION_BY_URL_NAME = {
     "grade_test_question": "tests",
 }
 
+# Student-facing test pages deliberately map to no section: students never see
+# the teacher nav.
+
 
 def active_section(request):
     """Highlights the nav item for whichever tool the page belongs to."""
