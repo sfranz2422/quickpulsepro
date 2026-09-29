@@ -45,6 +45,7 @@ SECTION_BY_URL_NAME = {
     "upload_test_csv": "tests",
     "download_test_csv_template": "tests",
     "toggle_test_open": "tests",
+    "duplicate_test": "tests",
     "delete_test": "tests",
     "test_results": "tests",
     "export_test_scores": "tests",

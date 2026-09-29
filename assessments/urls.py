@@ -38,6 +38,11 @@ urlpatterns = [
         views.toggle_test_open,
         name="toggle_test_open",
     ),
+    path(
+        "tests/<int:test_id>/duplicate/",
+        views.duplicate_test,
+        name="duplicate_test",
+    ),
     path("tests/<int:test_id>/delete/", views.delete_test, name="delete_test"),
 
     # Reporting and grading

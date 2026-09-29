@@ -711,3 +711,154 @@ class CompletionScreenTests(AssessmentTestCase):
         client = self.submit_a_test()
         html = client.get(self.take_url()).content.decode()
         self.assertNotIn("<script>alert(1)</script>", html)
+
+
+class DuplicateTestTests(AssessmentTestCase):
+    """Copying a test gives you a fresh, closed version with the same questions."""
+
+    def copy_url(self, test=None):
+        return reverse("duplicate_test", args=[(test or self.test).id])
+
+    def copy(self, test=None):
+        return self.client.post(self.copy_url(test))
+
+    # ---------- what gets copied ----------
+
+    def test_copying_creates_a_second_test(self):
+        resp = self.copy()
+        self.assertEqual(Test.objects.count(), 2)
+
+        copy = Test.objects.exclude(id=self.test.id).get()
+        self.assertRedirects(resp, reverse("edit_test", args=[copy.id]))
+
+    def test_the_questions_come_across_intact(self):
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+
+        originals = list(self.test.questions.all())
+        copies = list(copy.questions.all())
+
+        self.assertEqual(len(copies), len(originals))
+
+        for original, duplicate in zip(originals, copies):
+            self.assertEqual(duplicate.prompt, original.prompt)
+            self.assertEqual(duplicate.question_type, original.question_type)
+            self.assertEqual(duplicate.option_a, original.option_a)
+            self.assertEqual(duplicate.correct_option, original.correct_option)
+            self.assertEqual(duplicate.points, original.points)
+            self.assertEqual(duplicate.order, original.order)
+            self.assertNotEqual(duplicate.id, original.id)
+
+        self.assertEqual(copy.total_points, self.test.total_points)
+
+    def test_the_finish_screen_settings_come_across(self):
+        self.test.instructions = "Answer everything."
+        self.test.completion_message = "Now go to the IDE."
+        self.test.completion_link_url = "https://replit.com/@steve/loops"
+        self.test.completion_link_label = "Open it"
+        self.test.save()
+
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+
+        self.assertEqual(copy.instructions, "Answer everything.")
+        self.assertEqual(copy.completion_message, "Now go to the IDE.")
+        self.assertEqual(copy.completion_link_url, "https://replit.com/@steve/loops")
+        self.assertEqual(copy.completion_link_label, "Open it")
+
+    # ---------- what deliberately does not ----------
+
+    def test_a_copy_starts_closed_even_from_an_open_test(self):
+        self.assertTrue(self.test.is_open)
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+        self.assertFalse(copy.is_open)
+
+    def test_a_copy_gets_its_own_student_link(self):
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+        self.assertNotEqual(copy.public_id, self.test.public_id)
+
+    def test_student_work_is_not_copied(self):
+        student = Student.objects.create(
+            google_sub="uid-ada", email="ada@school.org", full_name="Ada")
+        attempt = TestAttempt.objects.create(
+            test=self.test, student=student, submitted_at="2026-09-29 10:00:00Z")
+        TestAnswer.objects.create(
+            attempt=attempt, question=self.mc, selected_option="B", points_awarded=2)
+
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+
+        self.assertEqual(copy.attempts.count(), 0)
+        self.assertEqual(TestAnswer.objects.filter(
+            question__test=copy).count(), 0)
+        # and the original is untouched
+        self.assertEqual(self.test.attempts.count(), 1)
+
+    def test_editing_the_copy_leaves_the_original_alone(self):
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+
+        question = copy.questions.first()
+        question.prompt = "Rewritten for the retake"
+        question.save()
+
+        self.mc.refresh_from_db()
+        self.assertEqual(self.mc.prompt,
+                         "What keyword defines a function in Python?")
+
+    # ---------- naming ----------
+
+    def test_the_copy_is_named_after_the_original(self):
+        self.copy()
+        self.assertTrue(
+            Test.objects.filter(title="Unit 3 Test (copy)").exists())
+
+    def test_copying_twice_numbers_the_second_one(self):
+        self.copy()
+        self.copy()
+        titles = set(Test.objects.values_list("title", flat=True))
+        self.assertEqual(titles, {
+            "Unit 3 Test", "Unit 3 Test (copy)", "Unit 3 Test (copy 2)"})
+
+    def test_copying_a_copy_does_not_stack_suffixes(self):
+        self.copy()
+        copy = Test.objects.get(title="Unit 3 Test (copy)")
+        self.copy(copy)
+        self.assertTrue(
+            Test.objects.filter(title="Unit 3 Test (copy 2)").exists())
+        self.assertFalse(
+            Test.objects.filter(title__contains="(copy) (copy)").exists())
+
+    def test_a_very_long_title_still_fits(self):
+        self.test.title = "T" * 200
+        self.test.save()
+        self.copy()
+        copy = Test.objects.exclude(id=self.test.id).get()
+        self.assertLessEqual(len(copy.title), 200)
+        self.assertTrue(copy.title.endswith("(copy)"))
+
+    # ---------- access ----------
+
+    def test_copying_requires_login(self):
+        resp = Client().post(self.copy_url())
+        self.assertIn("/login/", resp["Location"])
+        self.assertEqual(Test.objects.count(), 1)
+
+    def test_another_teacher_cannot_copy_your_test(self):
+        other = Client()
+        other.force_login(self.other_teacher)
+        self.assertEqual(other.post(self.copy_url()).status_code, 404)
+        self.assertEqual(Test.objects.count(), 1)
+
+    def test_copying_rejects_get(self):
+        self.assertEqual(self.client.get(self.copy_url()).status_code, 405)
+        self.assertEqual(Test.objects.count(), 1)
+
+    def test_the_buttons_are_on_both_pages(self):
+        listing = self.client.get(reverse("tests_home")).content.decode()
+        workbench = self.client.get(
+            reverse("edit_test", args=[self.test.id])).content.decode()
+        self.assertIn(self.copy_url(), listing)
+        self.assertIn(self.copy_url(), workbench)

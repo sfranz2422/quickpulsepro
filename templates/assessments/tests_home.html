@@ -61,6 +61,14 @@
                                    href="{% url 'edit_test' t.id %}">
                                     Edit
                                 </a>
+
+                                <form method="POST"
+                                      action="{% url 'duplicate_test' t.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-dark btn-sm">
+                                        Copy
+                                    </button>
+                                </form>
                             </div>
 
                         </div>

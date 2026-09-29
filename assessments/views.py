@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -347,6 +348,71 @@ def toggle_test_open(request, test_id):
     )
 
     return redirect("edit_test", test_id=test.id)
+
+
+# Matches a title that already ends in "(copy)" or "(copy 3)".
+COPY_SUFFIX = re.compile(r"\s*\(copy(?: \d+)?\)$")
+
+
+def _copy_title(test, teacher):
+    """A free title for a duplicate: 'Unit 3' -> 'Unit 3 (copy)' -> '(copy 2)'."""
+    base = COPY_SUFFIX.sub("", test.title).strip() or test.title
+    base = base[:180]
+
+    taken = set(
+        Test.objects.filter(teacher=teacher).values_list("title", flat=True))
+
+    candidate = f"{base} (copy)"
+    number = 2
+
+    while candidate in taken:
+        candidate = f"{base} (copy {number})"
+        number += 1
+
+    return candidate[:200]
+
+
+@login_required
+@require_POST
+def duplicate_test(request, test_id):
+    """Copies a test and its questions. Student work is not copied."""
+    original = _teacher_test(request, test_id)
+
+    copy = Test.objects.create(
+        teacher=request.user,
+        title=_copy_title(original, request.user),
+        instructions=original.instructions,
+        completion_message=original.completion_message,
+        completion_link_url=original.completion_link_url,
+        completion_link_label=original.completion_link_label,
+        # A copy always starts closed, so duplicating a live test can never
+        # accidentally publish a second one.
+        is_open=False,
+    )
+
+    TestQuestion.objects.bulk_create([
+        TestQuestion(
+            test=copy,
+            order=question.order,
+            question_type=question.question_type,
+            prompt=question.prompt,
+            option_a=question.option_a,
+            option_b=question.option_b,
+            option_c=question.option_c,
+            option_d=question.option_d,
+            correct_option=question.correct_option,
+            points=question.points,
+        )
+        for question in original.questions.all()
+    ])
+
+    messages.success(
+        request,
+        f'Copied to "{copy.title}". It has its own student link and is '
+        f'closed until you open it.'
+    )
+
+    return redirect("edit_test", test_id=copy.id)
 
 
 @login_required

@@ -252,6 +252,13 @@
 </div>
 
 <form method="POST"
+      action="{% url 'duplicate_test' test.id %}"
+      class="d-inline">
+    {% csrf_token %}
+    <button class="btn btn-outline-dark mb-4">Make a Copy</button>
+</form>
+
+<form method="POST"
       action="{% url 'delete_test' test.id %}"
       onsubmit="return confirm('Delete this test, its questions and every student answer? This cannot be undone.');">
     {% csrf_token %}
