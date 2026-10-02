@@ -76,6 +76,27 @@
         </div>
     </div>
 
+    {% if posts %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Send grades</h4>
+
+                <p class="text-muted">
+                    Sends each submitted, fully graded test's score to
+                    Classroom as a <strong>draft grade</strong>. Students don't
+                    see it until you return it in Classroom. Tests with short
+                    answers still to grade are held back. You can send again
+                    any time, for example after regrading.
+                </p>
+
+                <form method="post" action="{% url 'send_grades_to_classroom' test.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-primary">Send Grades to Classroom</button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h4 class="card-title mb-3">Post to a class</h4>

@@ -211,3 +211,63 @@ def teacher_courses(token):
         return [], "Google wouldn't list your classes just now."
 
     return courses, ""
+
+
+def class_lists(test, token):
+    """For every class this test was posted to, ask Classroom who is in it
+    and which submission is theirs.
+
+    Returns (classes, gone, error). Each class is a dict with the `post`,
+    Classroom's `work` (its state and maxPoints), and `emails`: each
+    roster email, lowercased, mapped to that student's submission id, or to
+    None when they are on the roster but the assignment wasn't given to them.
+
+    `gone` names classes whose Classroom assignment was deleted there. Their
+    posts are forgotten here, so the page offers posting again rather than
+    failing that way on every press. `error` is set when Google wouldn't
+    answer, and then nothing else should be trusted.
+
+    Rosters are asked for each time rather than stored: they change, and a
+    stored copy would quietly go stale.
+    """
+    classes, gone = [], []
+
+    for post in test.classroom_posts.all():
+        name = post.course_name or "a class"
+        base = f"{CLASSROOM_API}/courses/{post.course_id}"
+        work_url = f"{base}/courseWork/{post.work_id}"
+
+        status, work = google_get(work_url, token)
+
+        if status == 404:
+            gone.append(name)
+            post.delete()
+            continue
+
+        if status != 200:
+            return [], [], f"Google wouldn't find the assignment in {name}."
+
+        roster, status = google_list(base + "/students", token, "students")
+
+        if status != 200:
+            return [], [], f"Google wouldn't list the students in {name}."
+
+        submissions, status = google_list(
+            work_url + "/studentSubmissions", token, "studentSubmissions")
+
+        if status != 200:
+            return [], [], f"Google wouldn't list the submissions in {name}."
+
+        by_user = {s.get("userId"): s.get("id") for s in submissions}
+        emails = {}
+
+        for student in roster:
+            profile = student.get("profile") or {}
+            email = (profile.get("emailAddress") or "").strip().lower()
+
+            if email:
+                emails[email] = by_user.get(student.get("userId"))
+
+        classes.append({"post": post, "work": work, "emails": emails})
+
+    return classes, gone, ""

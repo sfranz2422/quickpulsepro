@@ -85,6 +85,11 @@ urlpatterns = [
         name="post_test_to_classroom",
     ),
     path(
+        "tests/<int:test_id>/classroom/grades/",
+        classroom_views.send_grades_to_classroom,
+        name="send_grades_to_classroom",
+    ),
+    path(
         "tests/classroom/connect/",
         classroom_views.classroom_connect,
         name="classroom_connect",

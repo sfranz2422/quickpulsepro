@@ -761,6 +761,7 @@ def test_results(request, test_id):
         "total_points": total_points,
         "questions_needing_grading": ungraded,
         "submitted_count": sum(1 for row in rows if row["attempt"].is_submitted),
+        "classroom_on": classroom_configured(),
     })
 
 

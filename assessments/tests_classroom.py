@@ -5,8 +5,9 @@ from django.test import Client, override_settings
 from django.urls import reverse
 
 from assessments import classroom
-from assessments.models import ClassroomConnection, ClassroomPost, Test
-from assessments.tests_assessments import AssessmentTestCase
+from assessments.models import (
+    ClassroomConnection, ClassroomPost, Test, TestAnswer, TestAttempt)
+from assessments.tests_assessments import CLAIMS, AssessmentTestCase
 
 
 ALL_SCOPES = " ".join(classroom.SCOPES)
@@ -130,6 +131,8 @@ class ConnectingTests(ClassroomTestCase):
 
         self.assertEqual(query["client_id"], ["test-client-id"])
         self.assertEqual(query["access_type"], ["offline"])
+        self.assertEqual(query["prompt"], ["select_account consent"])
+        self.assertNotIn("login_hint", query)
         self.assertEqual(query["scope"], [ALL_SCOPES])
         self.assertEqual(
             query["state"], [self.client.session["classroom_oauth_state"]])
@@ -339,3 +342,241 @@ class PrivacyPageTests(AssessmentTestCase):
         with override_settings(GOOGLE_OAUTH_CLIENT_SECRET="test-secret"):
             resp = self.client.get(reverse("test_classroom", args=[self.test.id]))
         self.assertContains(resp, reverse("privacy"))
+
+
+class GradebookGoogle(FakeGoogle):
+    """A Classroom with classes, rosters and submissions to grade."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # work id -> courseWork reply; course id -> roster; work id -> subs
+        self.works = {}
+        self.rosters = {}
+        self.submissions = {}
+        self.refuse = set()
+
+    def add_class(self, course_id, work_id, students, state="PUBLISHED",
+                  max_points=5, unassigned=()):
+        """students: {email: classroom user id}."""
+        self.works[work_id] = {"id": work_id, "state": state, "maxPoints": max_points}
+        self.rosters[course_id] = [
+            {"userId": uid, "profile": {"emailAddress": email}}
+            for email, uid in students.items()
+        ]
+        self.submissions[work_id] = [
+            {"id": f"sub-{uid}", "userId": uid}
+            for email, uid in students.items()
+            if email not in unassigned and state != "DRAFT"
+        ]
+
+    def get(self, url, access_token, params=None):
+        self.gets.append((url, params))
+        parts = url.split("/")
+
+        if url.endswith("/students"):
+            return 200, {"students": self.rosters.get(parts[-2], [])}
+
+        if url.endswith("/studentSubmissions"):
+            return 200, {"studentSubmissions": self.submissions.get(parts[-2], [])}
+
+        if "/courseWork/" in url:
+            work = self.works.get(parts[-1])
+            return (200, work) if work else (404, {})
+
+        return super().get(url, access_token, params)
+
+    def api(self, method, url, access_token, body=None, params=None):
+        self.api_calls.append((method, url, body))
+
+        if url.rsplit("/", 1)[-1] in self.refuse:
+            return 403, {"error": {"message": "Not allowed"}}
+
+        return 200, {}
+
+    def grades(self):
+        """{submission id: draft grade} for every grade sent."""
+        return {
+            url.rsplit("/", 1)[-1]: body["draftGrade"]
+            for method, url, body in self.api_calls
+            if body and "draftGrade" in body
+        }
+
+
+class SendingGradesTests(ClassroomTestCase):
+    def setUp(self):
+        super().setUp()
+        self.connect()
+        self.post = ClassroomPost.objects.create(
+            test=self.test, course_id="111", course_name="Period 2",
+            work_id="9001")
+
+    def take(self, sub, email, choice="B", text="It repeats", grade=3):
+        """A student submits; their short answer gets `grade` (None = ungraded)."""
+        client = self.student_client(
+            dict(CLAIMS, sub=sub, email=email, name=sub.title()))
+        client.get(self.take_url())
+        client.post(
+            reverse("take_test_question", args=[self.test.public_id, 1]),
+            {f"question_{self.mc.id}": choice, "action": "next"})
+        client.post(
+            reverse("take_test_question", args=[self.test.public_id, 2]),
+            {f"question_{self.sa.id}": text, "action": "next"})
+        client.post(reverse("take_test_review", args=[self.test.public_id]))
+
+        attempt = TestAttempt.objects.get(student__google_sub=sub)
+
+        if grade is not None:
+            TestAnswer.objects.filter(
+                attempt=attempt, question=self.sa).update(points_awarded=grade)
+
+        return attempt
+
+    def send(self, google):
+        with google:
+            return self.client.post(
+                reverse("send_grades_to_classroom", args=[self.test.id]),
+                follow=True)
+
+    def test_a_finished_score_goes_as_a_draft_grade(self):
+        self.take("ada", "Ada@School.org", choice="B", grade=2)
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {"sub-u1": 4})
+        self.assertContains(resp, "Sent 1 grade to Google Classroom")
+
+    def test_ungraded_short_answers_are_held_back_and_named(self):
+        self.take("ada", "ada@school.org", grade=None)
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {})
+        self.assertContains(resp, "short answers still to grade: Ada")
+
+    def test_a_student_not_on_the_roster_is_named(self):
+        self.take("ada", "ada@gmail.com")
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {})
+        self.assertContains(resp, "Not on any of this test&#x27;s Classroom rosters")
+
+    def test_a_student_not_given_the_assignment_is_named(self):
+        self.take("ada", "ada@school.org")
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"},
+                         unassigned=["ada@school.org"])
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {})
+        self.assertContains(resp, "not given the assignment in Classroom: Ada")
+
+    def test_each_student_goes_to_their_own_class(self):
+        ClassroomPost.objects.create(
+            test=self.test, course_id="222", course_name="Period 5",
+            work_id="9002")
+        self.take("ada", "ada@school.org", grade=3)
+        self.take("bob", "bob@school.org", choice="A", grade=1)
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+        google.add_class("222", "9002", {"bob@school.org": "u2"})
+
+        self.send(google)
+
+        self.assertEqual(google.grades(), {"sub-u1": 5, "sub-u2": 1})
+        sent_urls = [url for _, url, body in google.api_calls if "draftGrade" in body]
+        self.assertTrue(any("/courses/222/courseWork/9002/" in u for u in sent_urls))
+
+    def test_a_draft_assignment_says_to_assign_it_first(self):
+        self.take("ada", "ada@school.org")
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"}, state="DRAFT")
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {})
+        self.assertContains(resp, "still a draft in Period 2")
+
+    def test_changed_points_update_what_classroom_counts_it_out_of(self):
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {}, max_points=3)
+
+        self.send(google)
+
+        method, url, body = google.api_calls[0]
+        self.assertEqual((method, body), ("PATCH", {"maxPoints": 5}))
+        self.assertTrue(url.endswith("/courseWork/9001"))
+
+    def test_matching_points_are_left_alone(self):
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {}, max_points=5)
+
+        self.send(google)
+
+        self.assertEqual(google.api_calls, [])
+
+    def test_an_assignment_deleted_in_classroom_is_forgotten(self):
+        google = GradebookGoogle()  # no work 9001: Google says 404
+
+        resp = self.send(google)
+
+        self.assertFalse(ClassroomPost.objects.exists())
+        self.assertContains(resp, "deleted in Classroom for Period 2")
+
+    def test_students_still_taking_it_are_not_sent(self):
+        client = self.student_client()
+        client.get(self.take_url())
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+
+        resp = self.send(google)
+
+        self.assertEqual(google.grades(), {})
+        self.assertContains(resp, "1 student still taking the test")
+
+    def test_a_refused_grade_is_named(self):
+        self.take("ada", "ada@school.org")
+        google = GradebookGoogle()
+        google.add_class("111", "9001", {"ada@school.org": "u1"})
+        google.refuse.add("sub-u1")
+
+        resp = self.send(google)
+
+        self.assertContains(resp, "Google refused: Ada (Not allowed)")
+
+    def test_the_classroom_page_offers_sending_once_posted(self):
+        google = GradebookGoogle()
+
+        with google:
+            resp = self.client.get(self.page_url())
+
+        self.assertContains(
+            resp, reverse("send_grades_to_classroom", args=[self.test.id]))
+
+    def test_the_results_page_links_to_classroom(self):
+        resp = self.client.get(reverse("test_results", args=[self.test.id]))
+        self.assertContains(resp, self.page_url())
+
+    def test_sending_rejects_get(self):
+        resp = self.client.get(
+            reverse("send_grades_to_classroom", args=[self.test.id]))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_another_teacher_cannot_send_this_tests_grades(self):
+        other = Client()
+        other.force_login(self.other_teacher)
+        google = GradebookGoogle()
+
+        with google:
+            resp = other.post(
+                reverse("send_grades_to_classroom", args=[self.test.id]))
+
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(google.api_calls, [])

@@ -6,6 +6,7 @@ student sign-in.
 
 import re
 import secrets
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -108,17 +109,18 @@ def classroom_connect(request):
         "redirect_uri": _callback_url(request),
         "response_type": "code",
         "scope": " ".join(classroom.SCOPES),
-        # offline: a refresh token, so grades can be sent later. consent:
-        # Google only hands out a refresh token on a consent screen, and a
-        # reconnect without one would store nothing.
+        # offline: a refresh token, so grades can be sent later.
+        # select_account: always show the account chooser, so a teacher
+        # signed in to several Google accounts picks the school one rather
+        # than getting whichever the browser used last. consent: Google only
+        # hands out a refresh token on a consent screen, and a reconnect
+        # without one would store nothing. No login_hint: teacher emails
+        # here needn't be Google accounts, and a hint skips the chooser.
         "access_type": "offline",
-        "prompt": "consent",
+        "prompt": "select_account consent",
         "include_granted_scopes": "true",
         "state": state,
     }
-
-    if request.user.email:
-        params["login_hint"] = request.user.email
 
     return redirect(classroom.GOOGLE_AUTH_URL + "?" + urlencode(params))
 
@@ -310,3 +312,185 @@ def post_test_to_classroom(request, test_id):
         messages.success(request, f"Posted to {post.course_name}.")
 
     return redirect("test_classroom", test_id=test.id)
+
+
+def _names(people):
+    return ", ".join(sorted(people, key=str.lower))
+
+
+@login_required
+@require_POST
+def send_grades_to_classroom(request, test_id):
+    """Send every finished score to Classroom as a DRAFT grade, each to the
+    class the student is in.
+
+    Draft, not assigned: the teacher sees them in Classroom before students
+    do, and returns them there. A student is matched to Classroom by their
+    school email, which is why signing in with the school account matters.
+    Anyone who can't be sent is named in the reply, not skipped in silence.
+    Pressing it again simply sends the current scores again.
+    """
+    _require_configured()
+    test = get_object_or_404(Test, id=test_id, teacher=request.user)
+
+    def back():
+        return redirect("test_classroom", test_id=test.id)
+
+    if not test.classroom_posts.exists():
+        messages.error(request, "Post this test to a class first.")
+        return back()
+
+    token, why = classroom.access_token(request.user)
+
+    if token is None:
+        messages.error(request, why)
+        return back()
+
+    classes, gone, error = classroom.class_lists(test, token)
+
+    if gone:
+        messages.warning(
+            request,
+            f"This test's assignment was deleted in Classroom for "
+            f"{_names(gone)}, so it's no longer linked there. Post it again "
+            "to send grades to that class."
+        )
+
+    if error:
+        messages.error(request, error)
+        return back()
+
+    if not classes:
+        return back()
+
+    total = test.total_points
+    drafts = []
+
+    for entry in classes:
+        work = entry["work"]
+        name = entry["post"].course_name or "a class"
+
+        if work.get("state") == "DRAFT":
+            drafts.append(name)
+
+        # Questions edited since posting change what the test is out of.
+        if work.get("maxPoints") != total:
+            status, data = classroom.google_api(
+                "PATCH",
+                f"{classroom.CLASSROOM_API}/courses/{entry['post'].course_id}"
+                f"/courseWork/{entry['post'].work_id}",
+                token,
+                body={"maxPoints": total},
+                params={"updateMask": "maxPoints"},
+            )
+
+            if status != 200:
+                messages.warning(request, (
+                    f"Couldn't update {name} to be out of {total} points: "
+                    + classroom.google_message(data, "Google refused.")
+                ))
+
+    attempts = (
+        test.attempts
+        .select_related("student")
+        .prefetch_related("answers")
+    )
+
+    to_send, waiting, unmatched, unassigned = [], [], [], []
+    in_progress = 0
+
+    for attempt in attempts:
+        student = attempt.student
+
+        if not attempt.is_submitted:
+            in_progress += 1
+            continue
+
+        if attempt.needs_grading:
+            waiting.append(student.display_name)
+            continue
+
+        email = student.email.strip().lower()
+        target, on_a_roster = None, False
+
+        for entry in classes:
+            if email in entry["emails"]:
+                on_a_roster = True
+                submission_id = entry["emails"][email]
+
+                if submission_id:
+                    target = (entry["post"], submission_id)
+                    break
+
+        if target:
+            to_send.append((student, attempt.earned_points, *target))
+        elif on_a_roster:
+            unassigned.append(student.display_name)
+        else:
+            unmatched.append(student.display_name)
+
+    def send(item):
+        student, score, post, submission_id = item
+        status, data = classroom.google_api(
+            "PATCH",
+            f"{classroom.CLASSROOM_API}/courses/{post.course_id}"
+            f"/courseWork/{post.work_id}/studentSubmissions/{submission_id}",
+            token,
+            body={"draftGrade": score},
+            params={"updateMask": "draftGrade"},
+        )
+
+        if status == 200:
+            return None
+
+        return f"{student.display_name} ({classroom.google_message(data, 'refused')})"
+
+    # One call per student. Several at once, so a few full classes finish
+    # well inside the server's request timeout.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        failed = [result for result in pool.map(send, to_send) if result]
+
+    sent = len(to_send) - len(failed)
+
+    if sent:
+        messages.success(
+            request,
+            f"Sent {sent} grade{'s' if sent != 1 else ''} to Google Classroom "
+            "as drafts. Return them in Classroom when you're ready."
+        )
+    elif not (waiting or unmatched or unassigned or failed or drafts):
+        messages.info(request, "No submitted tests to send yet.")
+
+    if drafts:
+        messages.warning(request, (
+            f"The assignment is still a draft in {_names(drafts)}. Assign it "
+            "in Classroom, then send grades again."
+        ))
+
+    if waiting:
+        messages.warning(request, (
+            f"Not sent yet, short answers still to grade: {_names(waiting)}."
+        ))
+
+    if unassigned:
+        messages.warning(request, (
+            "In your class but not given the assignment in Classroom: "
+            f"{_names(unassigned)}."
+        ))
+
+    if unmatched:
+        messages.warning(request, (
+            "Not on any of this test's Classroom rosters (check they signed "
+            f"in with their school account): {_names(unmatched)}."
+        ))
+
+    if failed:
+        messages.error(request, f"Google refused: {_names(failed)}.")
+
+    if in_progress:
+        messages.info(request, (
+            f"{in_progress} student{'s' if in_progress != 1 else ''} still "
+            "taking the test, not sent."
+        ))
+
+    return back()

@@ -55,6 +55,7 @@ SECTION_BY_URL_NAME = {
     "grade_test_question": "tests",
     "test_classroom": "tests",
     "post_test_to_classroom": "tests",
+    "send_grades_to_classroom": "tests",
     "classroom_connect": "tests",
     "classroom_callback": "tests",
     "classroom_disconnect": "tests",
