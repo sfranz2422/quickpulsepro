@@ -118,6 +118,101 @@ def add_test_question(request, test_id):
     })
 
 
+def _rescore_after_edit(question, old_correct, old_points):
+    """Brings submitted scores in line with an edited question.
+
+    Returns how many answers changed. Answers on attempts still in progress
+    are left alone: they are scored when the student submits.
+    """
+    answers = TestAnswer.objects.filter(
+        question=question, attempt__submitted_at__isnull=False)
+
+    now = timezone.now()
+    changed = 0
+
+    if not question.is_short_answer:
+        if (question.correct_option, question.points) == (old_correct, old_points):
+            return 0
+
+        for answer in answers:
+            before = answer.points_awarded
+
+            # Blank answers stay at 0, the same as at submit time.
+            if answer.is_blank:
+                answer.points_awarded = 0
+            else:
+                answer.auto_grade()
+
+            if answer.points_awarded != before:
+                answer.graded_at = now
+                answer.save(update_fields=["points_awarded", "graded_at"])
+                changed += 1
+
+        return changed
+
+    # Short answers are graded by hand, so only a grade above the new
+    # maximum needs touching.
+    for answer in answers.filter(points_awarded__gt=question.points):
+        answer.points_awarded = question.points
+        answer.graded_at = now
+        answer.save(update_fields=["points_awarded", "graded_at"])
+        changed += 1
+
+    return changed
+
+
+@login_required
+def edit_test_question(request, question_id):
+    question = get_object_or_404(
+        TestQuestion, id=question_id, test__teacher=request.user)
+    test = question.test
+
+    answer_count = question.answers.count()
+    old_type = question.question_type
+    old_correct = question.correct_option
+    old_points = question.points
+
+    if request.method == "POST":
+        form = TestQuestionForm(request.POST, instance=question)
+
+        if (
+            form.is_valid()
+            and answer_count
+            and form.cleaned_data["question_type"] != old_type
+        ):
+            # Existing answers were written for the old type: a chosen letter
+            # means nothing to a short answer question, and vice versa.
+            form.add_error(
+                "question_type",
+                "Students have already answered this question, so its type "
+                "can't change. Delete it and add a new one instead."
+            )
+
+        if form.is_valid():
+            question = form.save()
+            rescored = _rescore_after_edit(question, old_correct, old_points)
+
+            if rescored:
+                messages.success(
+                    request,
+                    f"Question saved. {rescored} student "
+                    f"score{'s' if rescored != 1 else ''} updated to match."
+                )
+            else:
+                messages.success(request, "Question saved.")
+
+            return redirect("edit_test", test_id=test.id)
+    else:
+        form = TestQuestionForm(instance=question)
+
+    return render(request, "assessments/edit_question.html", {
+        "test": test,
+        "question": question,
+        "question_form": form,
+        "answer_count": answer_count,
+    })
+
+
 @login_required
 @require_POST
 def delete_test_question(request, question_id):

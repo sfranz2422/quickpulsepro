@@ -19,6 +19,11 @@ urlpatterns = [
         name="add_test_question",
     ),
     path(
+        "tests/questions/<int:question_id>/edit/",
+        views.edit_test_question,
+        name="edit_test_question",
+    ),
+    path(
         "tests/questions/<int:question_id>/delete/",
         views.delete_test_question,
         name="delete_test_question",

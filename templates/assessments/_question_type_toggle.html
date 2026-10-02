@@ -1,0 +1,19 @@
+<script>
+    (function () {
+        var mcFields = document.getElementById("mc-fields");
+        var saNote = document.getElementById("sa-note");
+
+        function sync() {
+            var checked = document.querySelector('input[name="question_type"]:checked');
+            var isShortAnswer = checked && checked.value === "SA";
+            mcFields.classList.toggle("d-none", isShortAnswer);
+            saNote.classList.toggle("d-none", !isShortAnswer);
+        }
+
+        document.querySelectorAll('input[name="question_type"]').forEach(function (input) {
+            input.addEventListener("change", sync);
+        });
+
+        sync();
+    })();
+</script>

@@ -108,59 +108,7 @@
         <form method="post" action="{% url 'add_test_question' test.id %}">
             {% csrf_token %}
 
-            <div class="mb-3 d-flex gap-4">
-                {% for radio in question_form.question_type %}
-                    <div class="form-check">
-                        {{ radio.tag }}
-                        <label class="form-check-label" for="{{ radio.id_for_label }}">
-                            {{ radio.choice_label }}
-                        </label>
-                    </div>
-                {% endfor %}
-            </div>
-
-            <div class="mb-3">
-                {{ question_form.prompt.label_tag }}
-                {{ question_form.prompt }}
-                {% for error in question_form.prompt.errors %}
-                    <div class="text-danger small mt-1">{{ error }}</div>
-                {% endfor %}
-            </div>
-
-            <div id="mc-fields">
-                <div class="row">
-                    {% for field in question_form %}
-                        {% if field.name == "option_a" or field.name == "option_b" or field.name == "option_c" or field.name == "option_d" %}
-                            <div class="col-md-6 mb-3">
-                                {{ field }}
-                                {% for error in field.errors %}
-                                    <div class="text-danger small mt-1">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-
-                <div class="mb-3" style="max-width: 220px;">
-                    {{ question_form.correct_option.label_tag }}
-                    {{ question_form.correct_option }}
-                    {% for error in question_form.correct_option.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div id="sa-note" class="alert alert-secondary d-none">
-                Short answer questions are graded by hand after students submit.
-            </div>
-
-            <div class="mb-3" style="max-width: 160px;">
-                {{ question_form.points.label_tag }}
-                {{ question_form.points }}
-                {% for error in question_form.points.errors %}
-                    <div class="text-danger small mt-1">{{ error }}</div>
-                {% endfor %}
-            </div>
+            {% include "assessments/_question_fields.html" %}
 
             <button class="btn btn-success">Add Question</button>
         </form>
@@ -233,12 +181,19 @@
                                 {% endif %}
                             </div>
 
-                            <form method="POST"
-                                  action="{% url 'delete_test_question' question.id %}"
-                                  onsubmit="return confirm('Delete this question? Any answers to it are deleted too.');">
-                                {% csrf_token %}
-                                <button class="btn btn-outline-danger btn-sm">Delete</button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{% url 'edit_test_question' question.id %}">
+                                    Edit
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'delete_test_question' question.id %}"
+                                      onsubmit="return confirm('Delete this question? Any answers to it are deleted too.');">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
                         </div>
 
                     </div>
@@ -269,23 +224,5 @@
 
 {% block extra_js %}
 {% include "assessments/_markdown_scripts.html" %}
-<script>
-    (function () {
-        var mcFields = document.getElementById("mc-fields");
-        var saNote = document.getElementById("sa-note");
-
-        function sync() {
-            var checked = document.querySelector('input[name="question_type"]:checked');
-            var isShortAnswer = checked && checked.value === "SA";
-            mcFields.classList.toggle("d-none", isShortAnswer);
-            saNote.classList.toggle("d-none", !isShortAnswer);
-        }
-
-        document.querySelectorAll('input[name="question_type"]').forEach(function (input) {
-            input.addEventListener("change", sync);
-        });
-
-        sync();
-    })();
-</script>
+{% include "assessments/_question_type_toggle.html" %}
 {% endblock %}
