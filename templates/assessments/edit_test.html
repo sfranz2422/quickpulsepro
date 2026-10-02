@@ -19,6 +19,11 @@
         <a class="btn btn-outline-primary" href="{% url 'test_results' test.id %}">
             Results
         </a>
+        {% if classroom_on %}
+            <a class="btn btn-outline-success" href="{% url 'test_classroom' test.id %}">
+                Google Classroom
+            </a>
+        {% endif %}
         <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
             Dashboard
         </a>

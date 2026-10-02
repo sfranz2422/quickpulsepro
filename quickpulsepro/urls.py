@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from django.views.generic import RedirectView
+from django.views.generic import RedirectView, TemplateView
 from polls.forms import TeacherLoginForm
 
 urlpatterns = [
@@ -26,6 +26,9 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(template_name="login.html", authentication_form=TeacherLoginForm),
          name="login"),
     path("logout/", auth_views.LogoutView.as_view(template_name='logout.html'), name="logout"),
+
+    # Public, and linked from Google's OAuth consent screen.
+    path("privacy/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
 
     path("", include("assessments.urls")),
     path("", include("polls.urls")),

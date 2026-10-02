@@ -53,6 +53,11 @@ SECTION_BY_URL_NAME = {
     "attempt_detail": "tests",
     "reopen_attempt": "tests",
     "grade_test_question": "tests",
+    "test_classroom": "tests",
+    "post_test_to_classroom": "tests",
+    "classroom_connect": "tests",
+    "classroom_callback": "tests",
+    "classroom_disconnect": "tests",
 }
 
 # Student-facing test pages deliberately map to no section: students never see

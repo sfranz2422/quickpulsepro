@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% comment %}
+    The privacy policy Google's OAuth consent screen links to. Keep it true:
+    if what the site stores changes, this changes with it. It is the one page
+    here a stranger is entitled to hold us to.
+{% endcomment %}
+
+{% block content %}
+
+<div style="max-width: 760px;">
+
+<h1>Privacy policy</h1>
+<p class="text-muted">
+    For QuickPulse Pro (quickpulsepro.onrender.com). Last updated October 2, 2026.
+</p>
+
+<p>
+    QuickPulse Pro is a classroom tool for live polls, review quizzes, flash
+    cards and tests, run by Steve Franz, a teacher. There are no ads, no
+    analytics and no tracking, and nothing is sold or shared for marketing.
+</p>
+
+<h2 class="h4 mt-4">Students</h2>
+
+<p>
+    Polls, quizzes and flash cards can be used without signing in. Your answers
+    are stored so your teacher can see the class's results. Flash cards also
+    store a random browser session ID with your answers. None of this is
+    connected to your name unless you sign in.
+</p>
+
+<p>
+    Tests require signing in with Google. Signing in asks Google for your name,
+    email address, profile picture link and Google account ID. Nothing else
+    from your Google account is requested. With them the site stores:
+</p>
+
+<ul>
+    <li>your name and email, so your teacher knows whose answers are whose;</li>
+    <li>your answers to tests, when you started and submitted, and the scores
+        your teacher gives;</li>
+    <li>your answers to polls and quizzes you take while signed in, labelled
+        with your name.</li>
+</ul>
+
+<p>
+    Only the teacher who made a poll, quiz or test, and the site's
+    administrator, can see the answers to it.
+</p>
+
+<h2 class="h4 mt-4">Teachers</h2>
+
+<p>
+    A teacher account stores a username, email address and password (stored
+    hashed, never in readable form), along with the polls, quizzes, flash
+    cards and tests the teacher creates.
+</p>
+
+<h2 class="h4 mt-4">Google Classroom (teachers only)</h2>
+
+<p>
+    A teacher can choose to connect their Google Classroom so the site can list
+    their classes, post tests to them as assignments, look up the students on
+    those class rosters (names and email addresses, to match students to their
+    test results), and send test grades back. Students are never asked for
+    Classroom access. Only tests use Classroom; polls, quizzes and flash cards
+    do not.
+</p>
+
+<p>
+    To do this the site keeps a Google access token for that teacher,
+    encrypted. It is used only for those purposes, only when the teacher acts,
+    and is deleted when they press Disconnect. They can also remove access at
+    any time from their Google account's security settings. Class rosters are
+    looked up when needed and not stored.
+</p>
+
+<p>
+    Use of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy"
+       target="_blank" rel="noopener">Google API Services User Data Policy</a>,
+    including its Limited Use requirements. Data from Google is not used for
+    advertising, not sold, and not used to train AI or machine-learning models.
+</p>
+
+<h2 class="h4 mt-4">Where it is kept, and who else is involved</h2>
+
+<ul>
+    <li>The site and its database are hosted by
+        <a href="https://render.com" target="_blank" rel="noopener">Render</a>,
+        which keeps ordinary request logs (including IP addresses) for a short
+        time.</li>
+    <li>Pages load styles and scripts from public content networks (such as
+        jsDelivr) and Google's sign-in script, which see your IP address as any
+        website would.</li>
+    <li>Cookies are used only to keep you signed in, to protect forms, and to
+        remember answers you've already given.</li>
+</ul>
+
+<h2 class="h4 mt-4">Deleting your information</h2>
+
+<p>
+    Teachers can delete their own polls, quizzes, tests and the answers to
+    them at any time. To have a student or teacher account and everything
+    attached to it deleted, email the address below.
+</p>
+
+<h2 class="h4 mt-4">Contact</h2>
+
+<p>
+    Steve Franz —
+    <a id="contact" href="#">email</a>
+    <noscript>stephenfranz22 at gmail dot com</noscript>
+</p>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Assembled here so the address never sits in the page as one string a
+    // scraper can lift.
+    (function () {
+        var who = ["stephenfranz22", "gmail.com"].join("@");
+        var link = document.getElementById("contact");
+        link.href = "mailto:" + who + "?subject=" + encodeURIComponent("QuickPulse Pro privacy");
+        link.textContent = who;
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="mb-1">{{ test.title }} — Google Classroom</h1>
+        <p class="text-muted mb-0">
+            Post this test as an assignment in your classes. Students open it
+            from Classroom and sign in here as usual.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary" href="{% url 'edit_test' test.id %}">
+        Back to Test
+    </a>
+</div>
+
+{% if not connection %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title">Connect your Google Classroom</h4>
+
+            {% if classroom_error %}
+                <div class="alert alert-warning">{{ classroom_error }}</div>
+            {% endif %}
+
+            <p>
+                You connect once, and it works for all your tests. Only you
+                see this: students never get a Classroom permission screen.
+            </p>
+            <p class="text-muted small">
+                Google will say it "hasn't verified this app". Choose
+                <strong>Advanced</strong>, then <strong>Go to QuickPulse Pro</strong>.
+                Leave every box ticked on the permissions screen.
+            </p>
+            <p class="text-muted small">
+                <a href="{% url 'privacy' %}">What QuickPulse Pro does with Classroom access</a>
+            </p>
+
+            <a class="btn btn-success"
+               href="{% url 'classroom_connect' %}?test={{ test.id }}">
+                Connect Google Classroom
+            </a>
+        </div>
+    </div>
+
+{% else %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title mb-3">Posted to</h4>
+
+            {% if posts %}
+                <ul class="list-group mb-0">
+                    {% for post in posts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                {{ post.course_name|default:"A class" }}
+                                <span class="text-muted small ms-2">
+                                    {{ post.posted_at|date:"M j, Y" }}
+                                </span>
+                            </span>
+                            {% if post.url %}
+                                <a href="{{ post.url }}" target="_blank" rel="noopener">
+                                    Open in Classroom
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">Not posted to any class yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title mb-3">Post to a class</h4>
+
+            {% if classroom_error %}
+                <div class="alert alert-warning mb-0">{{ classroom_error }}</div>
+            {% elif not test.total_points %}
+                <p class="text-muted mb-0">
+                    Add some questions first. Classroom only takes grades on
+                    work with points.
+                </p>
+            {% elif not courses %}
+                <p class="text-muted mb-0">
+                    {% if posts %}
+                        It's posted to every class you teach.
+                    {% else %}
+                        Google Classroom shows no active classes that you teach.
+                    {% endif %}
+                </p>
+            {% else %}
+                <form method="post" action="{% url 'post_test_to_classroom' test.id %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3" style="max-width: 420px;">
+                        <label class="form-label" for="course">Class</label>
+                        <select class="form-select" id="course" name="course">
+                            {% for course in courses %}
+                                <option value="{{ course.id }}">
+                                    {{ course.name }}{% if course.section %} — {{ course.section }}{% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="state"
+                                   id="state-draft" value="draft" checked>
+                            <label class="form-check-label" for="state-draft">
+                                Save as a draft in Classroom (assign or schedule it there)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="state"
+                                   id="state-publish" value="publish">
+                            <label class="form-check-label" for="state-publish">
+                                Assign to students now
+                            </label>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small">
+                        Worth {{ test.total_points }} point{{ test.total_points|pluralize }}
+                        in Classroom. Students still can't start the test until
+                        you open it here.
+                    </p>
+
+                    <button class="btn btn-success">Post to Classroom</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST"
+          action="{% url 'classroom_disconnect' %}"
+          class="mb-4"
+          onsubmit="return confirm('Disconnect Google Classroom? Tests already posted stay in Classroom. You can connect again any time.');">
+        {% csrf_token %}
+        <input type="hidden" name="test" value="{{ test.id }}">
+        <span class="text-muted small me-2">
+            Connected{% if connection.google_email %} as {{ connection.google_email }}{% endif %}.
+        </span>
+        <button class="btn btn-outline-danger btn-sm">Disconnect</button>
+    </form>
+
+{% endif %}
+
+{% endblock %}

@@ -252,3 +252,74 @@ class TestAnswer(models.Model):
 
     def __str__(self):
         return f"{self.attempt.student} - {self.question}"
+
+
+# ---------------------------------------------------------- Google Classroom
+
+
+class ClassroomConnection(models.Model):
+    """A teacher's standing permission to post tests to their Google Classroom.
+
+    Teachers only. Students sign in with the plain openid/email/profile they
+    always have; the Classroom permissions are asked for separately, by the
+    teacher, from a test's Classroom page.
+
+    `refresh_token` is ENCRYPTED with a key derived from SECRET_KEY, which
+    lives in Render's environment and not this database, so a copy of the
+    database alone is not a working key to anyone's classes. The cost:
+    changing SECRET_KEY makes every stored token unreadable, and each teacher
+    has to press Connect again.
+    """
+
+    teacher = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="classroom_connection"
+    )
+
+    refresh_token = models.TextField()
+
+    # The Google account that granted it, so the page can say which one.
+    google_email = models.CharField(max_length=320, blank=True)
+
+    connected_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.teacher} - {self.google_email}"
+
+
+class ClassroomPost(models.Model):
+    """One Google Classroom class a test was posted to.
+
+    Several per test when several periods take it: each class gets its own
+    Classroom assignment, because each class's grades have to go to
+    coursework in that class. Google only lets an app grade coursework the
+    app created, so posting from here is what makes sending grades possible.
+    """
+
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        related_name="classroom_posts"
+    )
+
+    course_id = models.CharField(max_length=32)
+    course_name = models.CharField(max_length=200, blank=True)
+
+    # Classroom's id for the assignment, and its page in Classroom.
+    work_id = models.CharField(max_length=32)
+    url = models.URLField(max_length=500, blank=True)
+
+    posted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["posted_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["test", "course_id"],
+                name="one_classroom_post_per_class",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.test} - {self.course_name or self.course_id}"

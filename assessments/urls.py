@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import classroom_views, views
 
 
 urlpatterns = [
@@ -71,6 +71,33 @@ urlpatterns = [
         "tests/questions/<int:question_id>/grade/",
         views.grade_test_question,
         name="grade_test_question",
+    ),
+
+    # Google Classroom
+    path(
+        "tests/<int:test_id>/classroom/",
+        classroom_views.test_classroom,
+        name="test_classroom",
+    ),
+    path(
+        "tests/<int:test_id>/classroom/post/",
+        classroom_views.post_test_to_classroom,
+        name="post_test_to_classroom",
+    ),
+    path(
+        "tests/classroom/connect/",
+        classroom_views.classroom_connect,
+        name="classroom_connect",
+    ),
+    path(
+        "tests/classroom/callback/",
+        classroom_views.classroom_callback,
+        name="classroom_callback",
+    ),
+    path(
+        "tests/classroom/disconnect/",
+        classroom_views.classroom_disconnect,
+        name="classroom_disconnect",
     ),
 
     # Students

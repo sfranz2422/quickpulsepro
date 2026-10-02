@@ -168,6 +168,11 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 # piece of the feature hides itself and the site behaves as it did before.
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
 
+# Only Google Classroom needs the secret: sign-in verifies a token in the
+# browser's hands, but connecting Classroom exchanges a code server-side.
+# Classroom features hide themselves until both are set.
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
+
 # Optional comma-separated allowlist, e.g. "myschool.org". Empty means any
 # Google account may sign in.
 GOOGLE_ALLOWED_DOMAINS = os.environ.get("GOOGLE_ALLOWED_DOMAINS", "")

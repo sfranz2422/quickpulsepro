@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from polls.students import get_current_student, student_required
 
+from .classroom import classroom_configured
 from .forms import TestCSVUploadForm, TestForm, TestQuestionForm
 from .models import Test, TestAnswer, TestAttempt, TestQuestion
 
@@ -59,6 +60,7 @@ def edit_test(request, test_id):
         "csv_form": TestCSVUploadForm(),
         "settings_form": TestForm(instance=test),
         "attempt_count": test.attempts.count(),
+        "classroom_on": classroom_configured(),
     })
 
 
@@ -84,6 +86,7 @@ def update_test_settings(request, test_id):
         "csv_form": TestCSVUploadForm(),
         "settings_form": form,
         "attempt_count": test.attempts.count(),
+        "classroom_on": classroom_configured(),
         "show_settings": True,
     })
 
@@ -114,6 +117,7 @@ def add_test_question(request, test_id):
         "csv_form": TestCSVUploadForm(),
         "settings_form": TestForm(instance=test),
         "attempt_count": test.attempts.count(),
+        "classroom_on": classroom_configured(),
         "show_question_form": True,
     })
 
