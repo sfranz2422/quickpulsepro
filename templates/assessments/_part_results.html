@@ -1,0 +1,36 @@
+{% comment %}
+    One student's fill in the blank or matching answer, part by part, marked
+    right or wrong against the key. Expects `answer`.
+{% endcomment %}
+<table class="table table-sm align-middle mb-1" style="max-width: 640px;">
+    <tbody>
+        {% for row in answer.part_results %}
+            <tr>
+                <td class="text-muted small" style="width: 1%;">
+                    {% if answer.question.is_matching %}{{ row.left }}{% else %}{{ row.number }}.{% endif %}
+                </td>
+                <td>
+                    {% if row.given %}
+                        <span class="font-monospace">{{ row.given }}</span>
+                    {% else %}
+                        <span class="text-muted fst-italic">blank</span>
+                    {% endif %}
+                </td>
+                <td class="text-nowrap">
+                    {% if row.correct %}
+                        <span class="badge bg-success">correct</span>
+                    {% else %}
+                        <span class="badge bg-danger">incorrect</span>
+                        <span class="text-muted small">
+                            {% if answer.question.is_matching %}
+                                ({{ row.answer }})
+                            {% else %}
+                                ({{ row.accepted|join:" or " }})
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -122,11 +122,12 @@ def add_test_question(request, test_id):
     })
 
 
-def _rescore_after_edit(question, old_correct, old_points):
+def _rescore_after_edit(question, old_key):
     """Brings submitted scores in line with an edited question.
 
-    Returns how many answers changed. Answers on attempts still in progress
-    are left alone: they are scored when the student submits.
+    `old_key` is question.answer_key() from before the edit. Returns how many
+    answers changed. Answers on attempts still in progress are left alone:
+    they are scored when the student submits.
     """
     answers = TestAnswer.objects.filter(
         question=question, attempt__submitted_at__isnull=False)
@@ -134,8 +135,8 @@ def _rescore_after_edit(question, old_correct, old_points):
     now = timezone.now()
     changed = 0
 
-    if not question.is_short_answer:
-        if (question.correct_option, question.points) == (old_correct, old_points):
+    if question.is_auto_graded:
+        if question.answer_key() == old_key:
             return 0
 
         for answer in answers:
@@ -173,8 +174,7 @@ def edit_test_question(request, question_id):
 
     answer_count = question.answers.count()
     old_type = question.question_type
-    old_correct = question.correct_option
-    old_points = question.points
+    old_key = question.answer_key()
 
     if request.method == "POST":
         form = TestQuestionForm(request.POST, instance=question)
@@ -185,7 +185,7 @@ def edit_test_question(request, question_id):
             and form.cleaned_data["question_type"] != old_type
         ):
             # Existing answers were written for the old type: a chosen letter
-            # means nothing to a short answer question, and vice versa.
+            # means nothing to a short answer question, and so on.
             form.add_error(
                 "question_type",
                 "Students have already answered this question, so its type "
@@ -194,7 +194,7 @@ def edit_test_question(request, question_id):
 
         if form.is_valid():
             question = form.save()
-            rescored = _rescore_after_edit(question, old_correct, old_points)
+            rescored = _rescore_after_edit(question, old_key)
 
             if rescored:
                 messages.success(
@@ -334,6 +334,14 @@ def upload_test_csv(request, test_id):
                 if (option_a and option_b)
                 else TestQuestion.SHORT_ANSWER
             )
+        elif raw_type in ("FB", "MT", "FILL IN THE BLANK", "MATCHING"):
+            messages.error(
+                request,
+                f"Row {row_number} is a fill in the blank or matching "
+                f"question. Those are added one at a time with the form "
+                f"above, not by CSV."
+            )
+            return redirect("edit_test", test_id=test.id)
         else:
             messages.error(
                 request,
@@ -500,6 +508,10 @@ def duplicate_test(request, test_id):
             option_c=question.option_c,
             option_d=question.option_d,
             correct_option=question.correct_option,
+            blank_answers=question.blank_answers,
+            case_sensitive=question.case_sensitive,
+            match_pairs=question.match_pairs,
+            match_extras=question.match_extras,
             points=question.points,
         )
         for question in original.questions.all()
@@ -542,12 +554,26 @@ def _save_one_answer(attempt, question, posted):
     answer, _ = TestAnswer.objects.get_or_create(
         attempt=attempt, question=question)
 
+    answer.text_answer = ""
+    answer.selected_option = ""
+    answer.responses = []
+
     if question.is_short_answer:
         answer.text_answer = raw
-        answer.selected_option = ""
+    elif question.is_fill_in_blank:
+        answer.responses = [
+            (posted.get(f"question_{question.id}_{number}") or "").strip()[:300]
+            for number in range(1, question.blank_count + 1)
+        ]
+    elif question.is_matching:
+        # Only an item the question actually offers can be stored.
+        offered = set(question.match_choices())
+
+        for number in range(1, len(question.match_pairs) + 1):
+            picked = posted.get(f"question_{question.id}_{number}") or ""
+            answer.responses.append(picked if picked in offered else "")
     else:
         answer.selected_option = raw[:1].upper() if raw else ""
-        answer.text_answer = ""
 
     answer.save()
 
@@ -627,6 +653,7 @@ def take_test_question(request, public_id, number):
         return redirect("take_test", public_id=test.public_id)
 
     question = questions[number - 1]
+    answer = attempt.answers.filter(question=question).first()
 
     if request.method == "POST":
         # Every move saves first, so navigating can never lose an answer.
@@ -654,7 +681,15 @@ def take_test_question(request, public_id, number):
         "test": test,
         "attempt": attempt,
         "question": question,
-        "answer": attempt.answers.filter(question=question).first(),
+        "answer": answer,
+        "match_rows": [
+            {"number": index, "left": left,
+             "picked": answer.response_at(index - 1) if answer else ""}
+            for index, (left, _) in enumerate(question.match_pairs, start=1)
+        ],
+        # Seeded by attempt, so each student keeps one order but neighbours
+        # don't share it.
+        "match_choices": question.match_choices(seed=attempt.id),
         "number": number,
         "total": len(questions),
         "progress_percent": round(number / len(questions) * 100),
@@ -787,7 +822,11 @@ def attempt_detail(request, attempt_id):
 
 @login_required
 def grade_test_question(request, question_id):
-    """Grades every student's answer to one short answer question at once."""
+    """Grades every student's answer to one question at once.
+
+    Short answers come here to be graded. Auto-graded questions can come here
+    too, to override a score, e.g. credit for a misspelled blank.
+    """
     question = get_object_or_404(
         TestQuestion, id=question_id, test__teacher=request.user)
 

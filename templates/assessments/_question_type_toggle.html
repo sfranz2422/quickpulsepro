@@ -1,13 +1,14 @@
 <script>
     (function () {
-        var mcFields = document.getElementById("mc-fields");
-        var saNote = document.getElementById("sa-note");
+        var sections = document.querySelectorAll(".type-fields");
 
         function sync() {
             var checked = document.querySelector('input[name="question_type"]:checked');
-            var isShortAnswer = checked && checked.value === "SA";
-            mcFields.classList.toggle("d-none", isShortAnswer);
-            saNote.classList.toggle("d-none", !isShortAnswer);
+            var type = checked ? checked.value : "MC";
+
+            sections.forEach(function (section) {
+                section.classList.toggle("d-none", section.dataset.type !== type);
+            });
         }
 
         document.querySelectorAll('input[name="question_type"]').forEach(function (input) {
@@ -15,5 +16,46 @@
         });
 
         sync();
+
+        // Matching: show the filled rows plus a few empty ones, and reveal
+        // more on request. Without this script every row simply shows.
+        var rows = Array.prototype.slice.call(document.querySelectorAll(".match-row"));
+        var addButton = document.getElementById("add-match-row");
+
+        if (!rows.length || !addButton) {
+            return;
+        }
+
+        function isFilled(row) {
+            return Array.prototype.some.call(row.querySelectorAll("input"), function (input) {
+                return input.value.trim() !== "";
+            });
+        }
+
+        var lastFilled = -1;
+
+        rows.forEach(function (row, index) {
+            if (isFilled(row)) {
+                lastFilled = index;
+            }
+        });
+
+        var visible = Math.max(4, lastFilled + 2);
+
+        function showRows() {
+            rows.forEach(function (row, index) {
+                row.classList.toggle("d-none", index >= visible);
+            });
+            addButton.classList.toggle("d-none", visible >= rows.length);
+        }
+
+        addButton.addEventListener("click", function () {
+            visible += 1;
+            showRows();
+            var input = rows[visible - 1] && rows[visible - 1].querySelector("input");
+            input && input.focus();
+        });
+
+        showRows();
     })();
 </script>

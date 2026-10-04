@@ -8,6 +8,8 @@ scripts and event handlers do not.
 import markdown as markdown_lib
 import nh3
 
+from .models import BLANK_MARKER
+
 
 MARKDOWN_EXTENSIONS = [
     "fenced_code",   # ```python ... ```
@@ -62,3 +64,29 @@ def render_markdown(text):
         attributes=ALLOWED_ATTRIBUTES,
         link_rel="noopener noreferrer",
     )
+
+
+# Stands in for a blank while the markdown renders. Letters and digits only,
+# so markdown leaves it alone and nh3 has nothing to strip.
+BLANK_TOKEN = "QPBLANK{}QP"
+
+
+def render_markdown_with_blanks(text, blank_html):
+    """Renders a fill in the blank prompt, putting blank_html(n) at each ___.
+
+    The blanks go in after sanitizing, so the inputs they become are ours and
+    never pass through the teacher's markdown. Returns (html, blanks placed).
+    """
+    count = 0
+
+    def to_token(match):
+        nonlocal count
+        count += 1
+        return BLANK_TOKEN.format(count)
+
+    html = render_markdown(BLANK_MARKER.sub(to_token, text or ""))
+
+    for number in range(1, count + 1):
+        html = html.replace(BLANK_TOKEN.format(number), blank_html(number), 1)
+
+    return html, count

@@ -1,0 +1,27 @@
+{% comment %}
+    The answer key for a fill in the blank or matching question, for the
+    teacher. Expects `question`. Multiple choice shows its own options.
+{% endcomment %}
+{% if question.is_fill_in_blank %}
+    <ol class="mt-2 mb-0 small">
+        {% for accepted in question.blank_answers %}
+            <li>
+                {% for option in accepted %}
+                    <code>{{ option }}</code>{% if not forloop.last %} or {% endif %}
+                {% endfor %}
+            </li>
+        {% endfor %}
+    </ol>
+    {% if question.case_sensitive %}
+        <div class="text-muted small">Capitals matter.</div>
+    {% endif %}
+{% elif question.is_matching %}
+    <ul class="mt-2 mb-0 small">
+        {% for left, right in question.match_pairs %}
+            <li>{{ left }} &rarr; {{ right }}</li>
+        {% endfor %}
+        {% for extra in question.match_extras %}
+            <li class="text-muted">{{ extra }} <span class="badge bg-light text-dark">extra</span></li>
+        {% endfor %}
+    </ul>
+{% endif %}

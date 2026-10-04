@@ -34,15 +34,23 @@
                         <span class="text-muted small">Question {{ row.number }}</span>
 
                         <div class="markdown-body">
-                            {{ row.question.prompt|truncatechars:120|markdown }}
+                            {% if row.question.is_fill_in_blank %}
+                                {{ row.question|question_prompt }}
+                            {% else %}
+                                {{ row.question.prompt|truncatechars:120|markdown }}
+                            {% endif %}
                         </div>
 
                         {% if row.answered %}
                             <span class="text-muted small">
-                                {% if row.question.is_short_answer %}
-                                    Answered
-                                {% else %}
+                                {% if row.question.is_multiple_choice %}
                                     Answered {{ row.answer.selected_option }}
+                                {% elif row.question.is_fill_in_blank %}
+                                    Filled {{ row.answer.filled_count }} of {{ row.question.blank_count }} blank{{ row.question.blank_count|pluralize }}
+                                {% elif row.question.is_matching %}
+                                    Matched {{ row.answer.filled_count }} of {{ row.question.match_pairs|length }}
+                                {% else %}
+                                    Answered
                                 {% endif %}
                             </span>
                         {% endif %}

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Test, TestQuestion
+from .models import BLANK_MARKER, Test, TestQuestion
 
 
 MARKDOWN_TEXTAREA = {
@@ -92,11 +92,13 @@ class TestQuestionForm(forms.ModelForm):
             "option_c",
             "option_d",
             "correct_option",
+            "case_sensitive",
             "points",
         ]
 
         labels = {
             "question_type": "Question Type",
+            "case_sensitive": "Capitals matter (\"True\" is not \"true\")",
             "prompt": "Question (markdown — code fences work)",
             "correct_option": "Correct Option",
         }
@@ -121,9 +123,32 @@ class TestQuestionForm(forms.ModelForm):
                 choices=[("", "—")] + [(x, x) for x in "ABCD"],
                 attrs={"class": "form-select"},
             ),
+            "case_sensitive": forms.CheckboxInput(attrs={
+                "class": "form-check-input"}),
             "points": forms.NumberInput(attrs={
                 "class": "form-control", "min": 1}),
         }
+
+    # Fill in the blank. Not model fields: they are parsed into lists in
+    # clean() and stored as JSON.
+    blank_answers_text = forms.CharField(
+        label="Answers, one line per blank",
+        required=False,
+        widget=forms.Textarea(attrs={
+            "class": "form-control font-monospace",
+            "rows": 3,
+            "placeholder": "def\nreturn | return None",
+        }),
+    )
+
+    match_extras_text = forms.CharField(
+        label="Extra choices that match nothing (optional, one per line)",
+        required=False,
+        widget=forms.Textarea(attrs={
+            "class": "form-control",
+            "rows": 2,
+        }),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,6 +159,40 @@ class TestQuestionForm(forms.ModelForm):
         # clean() rather than on the individual fields.
         for name in ("option_a", "option_b", "correct_option"):
             self.fields[name].required = False
+
+        pairs = list(self.instance.match_pairs or [])
+
+        for index in range(TestQuestion.MAX_MATCH_PAIRS):
+            left, right = pairs[index] if index < len(pairs) else ("", "")
+
+            for side, value, placeholder in [
+                ("left", left, "Term"),
+                ("right", right, "Its match"),
+            ]:
+                self.fields[f"match_{side}_{index}"] = forms.CharField(
+                    required=False,
+                    max_length=300,
+                    initial=value,
+                    widget=forms.TextInput(attrs={
+                        "class": "form-control",
+                        "placeholder": placeholder,
+                    }),
+                )
+
+        if self.instance.pk:
+            self.fields["blank_answers_text"].initial = "\n".join(
+                " | ".join(accepted)
+                for accepted in self.instance.blank_answers
+            )
+            self.fields["match_extras_text"].initial = "\n".join(
+                self.instance.match_extras)
+
+    def match_rows(self):
+        """(left field, right field) per row, for the template."""
+        return [
+            (self[f"match_left_{index}"], self[f"match_right_{index}"])
+            for index in range(TestQuestion.MAX_MATCH_PAIRS)
+        ]
 
     def clean_points(self):
         points = self.cleaned_data.get("points")
@@ -149,13 +208,31 @@ class TestQuestionForm(forms.ModelForm):
 
         option_fields = ["option_a", "option_b", "option_c", "option_d"]
 
-        if question_type == TestQuestion.SHORT_ANSWER:
-            # A short answer question has no options to store.
+        # Only the current type's answer key is kept, so a question that
+        # changed type doesn't carry a stale one around.
+        if question_type != TestQuestion.MULTIPLE_CHOICE:
             for name in option_fields:
                 cleaned_data[name] = ""
 
             cleaned_data["correct_option"] = ""
 
+        if question_type != TestQuestion.FILL_IN_BLANK:
+            cleaned_data["blank_answers"] = []
+            cleaned_data["case_sensitive"] = False
+
+        if question_type != TestQuestion.MATCHING:
+            cleaned_data["match_pairs"] = []
+            cleaned_data["match_extras"] = []
+
+        if question_type == TestQuestion.SHORT_ANSWER:
+            return cleaned_data
+
+        if question_type == TestQuestion.FILL_IN_BLANK:
+            self._clean_blanks(cleaned_data)
+            return cleaned_data
+
+        if question_type == TestQuestion.MATCHING:
+            self._clean_matching(cleaned_data)
             return cleaned_data
 
         for name, label in [("option_a", "Option A"), ("option_b", "Option B")]:
@@ -187,6 +264,99 @@ class TestQuestionForm(forms.ModelForm):
             cleaned_data["correct_option"] = correct
 
         return cleaned_data
+
+    def _clean_blanks(self, cleaned_data):
+        prompt = cleaned_data.get("prompt") or ""
+        blanks = max(1, len(BLANK_MARKER.findall(prompt)))
+
+        lines = [
+            line for line in
+            (cleaned_data.get("blank_answers_text") or "").splitlines()
+            if line.strip()
+        ]
+
+        answers = []
+
+        for line in lines:
+            accepted = [option.strip() for option in line.split("|")]
+            accepted = [option for option in accepted if option]
+
+            if accepted:
+                answers.append(accepted)
+
+        if not answers:
+            self.add_error(
+                "blank_answers_text",
+                "Give the answer for each blank."
+            )
+        elif len(answers) != blanks:
+            self.add_error(
+                "blank_answers_text",
+                f"The question has {blanks} blank{'s' if blanks != 1 else ''} "
+                f"(each ___ is one) but {len(answers)} answer "
+                f"line{'s' if len(answers) != 1 else ''}. Give one line per blank."
+            )
+
+        cleaned_data["blank_answers"] = answers
+
+    def _clean_matching(self, cleaned_data):
+        pairs = []
+        half_filled = False
+
+        for index in range(TestQuestion.MAX_MATCH_PAIRS):
+            left = (cleaned_data.get(f"match_left_{index}") or "").strip()
+            right = (cleaned_data.get(f"match_right_{index}") or "").strip()
+
+            if left and right:
+                pairs.append([left, right])
+            elif left or right:
+                half_filled = True
+
+        if half_filled:
+            self.add_error(
+                None,
+                "Each matching row needs both a term and its match."
+            )
+
+        if len(pairs) < 2:
+            self.add_error(
+                None,
+                "A matching question needs at least two pairs."
+            )
+
+        lefts = [left for left, _ in pairs]
+
+        if len(set(lefts)) != len(lefts):
+            self.add_error(
+                None,
+                "Two rows have the same term on the left. Each term needs "
+                "to be different so students can tell them apart."
+            )
+
+        rights = {right for _, right in pairs}
+
+        extras = []
+
+        for line in (cleaned_data.get("match_extras_text") or "").splitlines():
+            line = line.strip()
+
+            if line and line not in rights and line not in extras:
+                extras.append(line)
+
+        cleaned_data["match_pairs"] = pairs
+        cleaned_data["match_extras"] = extras
+
+    def save(self, commit=True):
+        question = super().save(commit=False)
+
+        question.blank_answers = self.cleaned_data.get("blank_answers", [])
+        question.match_pairs = self.cleaned_data.get("match_pairs", [])
+        question.match_extras = self.cleaned_data.get("match_extras", [])
+
+        if commit:
+            question.save()
+
+        return question
 
 
 class TestCSVUploadForm(forms.Form):

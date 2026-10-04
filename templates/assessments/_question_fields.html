@@ -1,9 +1,9 @@
 {% comment %}
     The fields of a TestQuestionForm, shared by the add form on the workbench
     and the edit page. Expects `question_form` in context. Pair it with
-    _question_type_toggle.html, which hides the options for short answers.
+    _question_type_toggle.html, which shows only the chosen type's fields.
 {% endcomment %}
-<div class="mb-3 d-flex gap-4">
+<div class="mb-3 d-flex gap-4 flex-wrap">
     {% for radio in question_form.question_type %}
         <div class="form-check">
             {{ radio.tag }}
@@ -22,7 +22,7 @@
     {% endfor %}
 </div>
 
-<div id="mc-fields">
+<div class="type-fields" data-type="MC">
     <div class="row">
         {% for field in question_form %}
             {% if field.name == "option_a" or field.name == "option_b" or field.name == "option_c" or field.name == "option_d" %}
@@ -45,8 +45,75 @@
     </div>
 </div>
 
-<div id="sa-note" class="alert alert-secondary d-none">
+<div class="type-fields alert alert-secondary" data-type="SA">
     Short answer questions are graded by hand after students submit.
+</div>
+
+<div class="type-fields" data-type="FB">
+    <div class="alert alert-secondary small">
+        Type <code>___</code> (three underscores) in the question wherever a
+        blank goes, e.g. <em>A function is defined with ___ and sends a value
+        back with ___.</em> With no <code>___</code>, students get one box
+        under the question.
+    </div>
+
+    <div class="mb-3">
+        {{ question_form.blank_answers_text.label_tag }}
+        {{ question_form.blank_answers_text }}
+        <div class="form-text">
+            In order, first blank first. Separate answers that are all
+            accepted with <code>|</code>, e.g. <code>colour | color</code>.
+            Extra spaces are ignored.
+        </div>
+        {% for error in question_form.blank_answers_text.errors %}
+            <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="form-check mb-3">
+        {{ question_form.case_sensitive }}
+        <label class="form-check-label" for="{{ question_form.case_sensitive.id_for_label }}">
+            {{ question_form.case_sensitive.label }}
+        </label>
+    </div>
+
+    <div class="form-text mb-3">
+        Scored automatically. Each blank is worth an equal share of the
+        points, rounded down, so points that divide evenly by the number of
+        blanks work best.
+    </div>
+</div>
+
+<div class="type-fields" data-type="MT">
+    <p class="small text-muted mb-2">
+        Students pick the match for each term from a shuffled list. Fill in
+        at least two rows; empty rows are ignored.
+    </p>
+
+    {% for left, right in question_form.match_rows %}
+        <div class="row g-2 mb-2 match-row">
+            <div class="col-6">{{ left }}</div>
+            <div class="col-6">{{ right }}</div>
+        </div>
+    {% endfor %}
+
+    <button type="button" class="btn btn-link btn-sm px-0 mb-3 d-none" id="add-match-row">
+        + Add another pair
+    </button>
+
+    <div class="mb-3">
+        {{ question_form.match_extras_text.label_tag }}
+        {{ question_form.match_extras_text }}
+        <div class="form-text">
+            Added to the list students choose from, so the last pair
+            can't be worked out by elimination.
+        </div>
+    </div>
+
+    <div class="form-text mb-3">
+        Scored automatically. Each pair is worth an equal share of the
+        points, rounded down.
+    </div>
 </div>
 
 <div class="mb-3" style="max-width: 160px;">

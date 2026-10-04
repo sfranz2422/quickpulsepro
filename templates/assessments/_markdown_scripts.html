@@ -3,7 +3,12 @@
 
 <script>
     // Syntax highlight anything already rendered on the page.
+    // Skips code holding a fill in the blank box or slot: highlighting
+    // rewrites the block's HTML, which would throw them away.
     document.querySelectorAll(".markdown-body pre code").forEach(function (block) {
+        if (block.children.length) {
+            return;
+        }
         window.hljs && hljs.highlightElement(block);
     });
 

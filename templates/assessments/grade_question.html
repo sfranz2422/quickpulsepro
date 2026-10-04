@@ -20,8 +20,11 @@
 </div>
 
 <div class="card shadow-sm mb-4">
-    <div class="card-body markdown-body">
-        {{ question.prompt|markdown }}
+    <div class="card-body">
+        <div class="markdown-body">
+            {{ question|question_prompt }}
+        </div>
+        {% include "assessments/_answer_key.html" %}
     </div>
 </div>
 
@@ -44,6 +47,13 @@
 
                             {% if answer.is_blank %}
                                 <p class="text-muted fst-italic mb-0">No answer given.</p>
+                            {% elif question.is_fill_in_blank or question.is_matching %}
+                                {% include "assessments/_part_results.html" %}
+                            {% elif question.is_multiple_choice %}
+                                <p class="mb-0">
+                                    Answered <strong>{{ answer.selected_option }}</strong>
+                                    (correct answer: {{ question.correct_option }})
+                                </p>
                             {% else %}
                                 <div class="border rounded p-3 bg-light">
                                     <pre class="mb-0" style="white-space: pre-wrap;">{{ answer.text_answer }}</pre>
@@ -75,7 +85,12 @@
             <div class="card-body d-flex gap-2 align-items-center flex-wrap">
                 <button class="btn btn-success">Save Grades</button>
                 <span class="text-muted small">
-                    Blank boxes are left ungraded.
+                    {% if question.is_short_answer %}
+                        Blank boxes are left ungraded.
+                    {% else %}
+                        These were scored automatically. Change any score
+                        to override it.
+                    {% endif %}
                 </span>
             </div>
         </div>

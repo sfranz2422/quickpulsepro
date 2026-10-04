@@ -113,6 +113,10 @@
         <form method="post" action="{% url 'add_test_question' test.id %}">
             {% csrf_token %}
 
+            {% for error in question_form.non_field_errors %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endfor %}
+
             {% include "assessments/_question_fields.html" %}
 
             <button class="btn btn-success">Add Question</button>
@@ -169,10 +173,12 @@
                                 </div>
 
                                 <div class="markdown-body">
-                                    {{ question.prompt|markdown }}
+                                    {{ question|question_prompt }}
                                 </div>
 
-                                {% if not question.is_short_answer %}
+                                {% include "assessments/_answer_key.html" %}
+
+                                {% if question.is_multiple_choice %}
                                     <ul class="mt-2 mb-0 small">
                                         {% for letter, text in question.options %}
                                             <li>

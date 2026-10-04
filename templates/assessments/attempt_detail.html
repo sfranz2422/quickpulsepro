@@ -30,7 +30,7 @@
             </div>
 
             <div class="markdown-body mb-3">
-                {{ row.question.prompt|markdown }}
+                {{ row.question|question_prompt }}
             </div>
 
             {% if row.answer and not row.answer.is_blank %}
@@ -39,6 +39,8 @@
                     <div class="border rounded p-3 bg-light">
                         <pre class="mb-0" style="white-space: pre-wrap;">{{ row.answer.text_answer }}</pre>
                     </div>
+                {% elif row.question.is_fill_in_blank or row.question.is_matching %}
+                    {% include "assessments/_part_results.html" with answer=row.answer %}
                 {% else %}
                     <p class="mb-1">
                         Answered <strong>{{ row.answer.selected_option }}</strong>
@@ -62,6 +64,12 @@
                     <span class="badge bg-dark">
                         {{ row.answer.points_awarded }} / {{ row.question.points }}
                     </span>
+                    {% if row.question.is_fill_in_blank or row.question.is_matching %}
+                        <a class="btn btn-link btn-sm"
+                           href="{% url 'grade_test_question' row.question.id %}">
+                            Adjust points
+                        </a>
+                    {% endif %}
                 {% else %}
                     <span class="badge bg-warning text-dark">Not graded</span>
                     {% if row.question.is_short_answer %}
